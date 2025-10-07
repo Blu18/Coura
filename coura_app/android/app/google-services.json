@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "364990375311",
+    "project_id": "coura-3ab8e",
+    "storage_bucket": "coura-3ab8e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364990375311:android:0d1c2d8031be64d8d097fa",
+        "android_client_info": {
+          "package_name": "com.example.coura_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "364990375311-g5bhu7ao6a9kgkcauc876isig73mqam3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDPUt0Y1XPi8HeYvTlbIhjLDA1O-GIb1E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "364990375311-g5bhu7ao6a9kgkcauc876isig73mqam3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
