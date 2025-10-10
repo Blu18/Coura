@@ -1,48 +1,70 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+ValueNotifier<AuthService> authService = ValueNotifier(AuthService());
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
 
-  Future<void> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
-      if (googleUser == null) return; 
+  User? get currentUser => firebaseAuth.currentUser;
 
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-      
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.idToken,
-        idToken: googleAuth.idToken,
-      );
+  Stream<User?> get authStateChanges => firebaseAuth.authStateChanges();
 
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
-
-      if (user != null) {
-        _saveUserToFirestore(user);
-      }
-    } catch (e) {
-      // print("Error en signInWithGoogle: $e");
-    }
+  Future<UserCredential> signIn({
+    required String email,
+    required String password,
+  }) async {
+    return await firebaseAuth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
   }
 
-  Future<void> _saveUserToFirestore(User user) async {
-    final userDocRef = _db.collection('users').doc(user.uid);
-    await userDocRef.set({
-      'uid': user.uid,
-      'email': user.email,
-      'displayName': user.displayName,
-      'photoURL': user.photoURL,
-      'lastSeen': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+  Future<UserCredential> createAccount({
+    required String email,
+    required String password,
+  }) async {
+    return await firebaseAuth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
   }
-  
+
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
+    await firebaseAuth.signOut();
+  }
+
+  Future<void> resetPassword({required String email}) async {
+    await firebaseAuth.sendPasswordResetEmail(email: email);
+  }
+
+  Future<void> updateUsername({required String username}) async {
+    await currentUser!.updateDisplayName(username);
+  }
+
+  Future<void> deleteAccount({
+    required String email,
+    required String password,
+  }) async {
+    AuthCredential credential = EmailAuthProvider.credential(
+      email: email,
+      password: password,
+    );
+    await currentUser!.reauthenticateWithCredential(credential);
+    await currentUser!.delete();
+    await firebaseAuth.signOut();
+  }
+
+  Future<void> resetPasswordFromCurrentPassword({
+    required String currentPassword,
+    required String newPassword,
+    required String email,
+  }) async {
+    AuthCredential credential = EmailAuthProvider.credential(
+      email: email,
+      password: currentPassword,
+    );
+    await currentUser!.reauthenticateWithCredential(credential);
+    await currentUser!.updatePassword(newPassword);
   }
 }
