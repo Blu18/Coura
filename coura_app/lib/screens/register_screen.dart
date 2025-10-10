@@ -1,10 +1,10 @@
 import 'package:coura_app/screens/home_screen.dart';
 import 'package:coura_app/screens/login_screen.dart';
+import 'package:coura_app/utils/custom/custom_name_field.dart';
 import 'package:coura_app/utils/custom/custom_text_field.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/app_images.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
-import 'package:coura_app/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -32,10 +32,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void register() async {
     try {
-      await authService.value.createAccount(
+      final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: correocontroller.text,
         password: contracontroller.text,
       );
+      User? user = userCredential.user;
+
+      if (user != null) {
+        await user.updateProfile(displayName: nombrecontroller.text.trim());
+        await user.reload();
+        print(
+          "¡Cuenta creada y nombre guardado exitosamente: ${user.displayName}!",
+        );
+      }
       popPage();
       Navigator.push(
         context,
@@ -119,12 +128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: 10,
                 children: [
-                  CustomField(
+                  CustomNameField(
                     title: "Nombre Completo",
                     controller: nombrecontroller,
                     hintText: "Ej: Juan Pérez",
-                    isThisPassword: false,
-                    isthisRequired: true,
                   ),
                   CustomField(
                     title: "Correo Electrónico",
