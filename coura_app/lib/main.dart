@@ -1,5 +1,6 @@
 import 'package:coura_app/firebase_options.dart';
 import 'package:coura_app/screens/register_screen.dart';
+import 'package:coura_app/services/auth_layout.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +23,7 @@ class MainApp extends StatelessWidget {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
       //home: LoginScreen(),
-      home: RegisterScreen(),
+      home: AuthLayout(),
     );
   }
 }
