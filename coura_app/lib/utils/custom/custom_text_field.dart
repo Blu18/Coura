@@ -6,12 +6,14 @@ class CustomField extends StatefulWidget {
   final String hintText;
   final TextEditingController controller;
   final bool isThisPassword;
+  final bool isthisRequired;
   const CustomField({
     super.key,
     required this.title,
     required this.controller,
     required this.hintText,
     this.isThisPassword = false,
+    this.isthisRequired = false,
   });
 
   @override
@@ -29,11 +31,32 @@ class _CustomFieldState extends State<CustomField> {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 10,
         children: [
-          Text(widget.title, style: CTextStyle.bodyMediuimbold),
+          widget.isthisRequired
+              ? RichText(
+                  text: TextSpan(
+                    // Estilo por defecto para el texto, heredado por los hijos.
+                    // Puedes cambiarlo por tu CTextStyle.bodyMedium si es necesario.
+                    style: DefaultTextStyle.of(context).style,
+                    children: <TextSpan>[
+                      // Primera parte del texto: el título
+                      TextSpan(text: widget.title),
+                      // Segunda parte: el asterisco en color rojo
+                      TextSpan(
+                        text:
+                            ' *', // El espacio es importante para separarlo del título
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Text(widget.title),
           TextFormField(
             controller: widget.controller,
             style: CTextStyle.bodyMedium,
-            obscureText: ispassClicked ,
+            obscureText: ispassClicked && widget.isThisPassword,
             decoration: InputDecoration(
               suffixIcon: widget.isThisPassword
                   ? InkWell(
@@ -42,7 +65,9 @@ class _CustomFieldState extends State<CustomField> {
                           ispassClicked = !ispassClicked;
                         });
                       },
-                      child: Icon( ispassClicked ? Icons.visibility : Icons.visibility_off),
+                      child: Icon(
+                        ispassClicked ? Icons.visibility : Icons.visibility_off,
+                      ),
                     )
                   : null,
               contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
@@ -57,13 +82,18 @@ class _CustomFieldState extends State<CustomField> {
             ),
           ),
 
-          if(widget.isThisPassword)...[
-            SizedBox(height: 10,),
-            Align( 
+          if (widget.isThisPassword) ...[
+            SizedBox(height: 10),
+            Align(
               alignment: Alignment.centerRight,
-              child: Text("¿Olvidaste tu contraseña?", style: CTextStyle.bodySmall.copyWith(color: const Color.fromARGB(255, 80, 80, 80)))
-            )
-          ]   
+              child: Text(
+                "¿Olvidaste tu contraseña?",
+                style: CTextStyle.bodySmall.copyWith(
+                  color: const Color.fromARGB(255, 80, 80, 80),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
