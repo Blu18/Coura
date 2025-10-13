@@ -27,6 +27,26 @@ class _CustomNameFieldState extends State<CustomNameField> {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 10,
         children: [
+          RichText(
+            text: TextSpan(
+              // Estilo por defecto para el texto, heredado por los hijos.
+              // Puedes cambiarlo por tu CTextStyle.bodyMedium si es necesario.
+              style: DefaultTextStyle.of(context).style,
+              children: <TextSpan>[
+                // Primera parte del texto: el título
+                TextSpan(text: widget.title),
+                // Segunda parte: el asterisco en color rojo
+                TextSpan(
+                  text:
+                      ' *', // El espacio es importante para separarlo del título
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
           TextFormField(
             controller: widget.controller,
             style: CTextStyle.bodyMedium,

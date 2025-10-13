@@ -52,7 +52,13 @@ class _CustomFieldState extends State<CustomField> {
                     ],
                   ),
                 )
-              : Text(widget.title),
+              : RichText(text: TextSpan(
+                    // Estilo por defecto para el texto, heredado por los hijos.
+                    // Puedes cambiarlo por tu CTextStyle.bodyMedium si es necesario.
+                    style: DefaultTextStyle.of(context).style,
+                    children: <TextSpan>[
+                      // Primera parte del texto: el título
+                      TextSpan(text: widget.title),])),
           TextFormField(
             maxLines: widget.isThisPassword ? 1 : null,
             expands: false,
