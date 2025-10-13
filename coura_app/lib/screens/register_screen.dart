@@ -19,7 +19,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   TextEditingController nombrecontroller = TextEditingController();
   TextEditingController correocontroller = TextEditingController();
   TextEditingController contracontroller = TextEditingController();
-  // final _formKey = GlobalKey<FormState>();
   String errorMessage = '';
 
   @override

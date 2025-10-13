@@ -42,28 +42,30 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       String translatedError = "Ocurrio un error";
       switch (e.code) {
-      case 'user-not-found':
-        translatedError = "Usuario no encontrado";
-        break;
-      case 'wrong-password':
-        translatedError = "La contraseña es incorrecta";
-        break;
-      case 'invalid-email':
-        translatedError = "Correo electrónico no es válido.";
-        break;
-      case 'user-disabled':
-        translatedError = "Este usuario ha sido deshabilitado.";
-        break;
-      case 'too-many-requests':
-         translatedError = "Se han bloqueado las solicitudes por actividad inusual. Intenta más tarde.";
-         break;
-      case 'network-request-failed':
-        translatedError = "Error de red. Revisa tu conexión a internet.";
-        break;
-      default:
-        translatedError = "Error al iniciar sesión. Verifica tus credenciales.";
-        print('Error no manejado: ${e.code}');
-    }
+        case 'user-not-found':
+          translatedError = "Usuario no encontrado";
+          break;
+        case 'wrong-password':
+          translatedError = "La contraseña es incorrecta";
+          break;
+        case 'invalid-email':
+          translatedError = "Correo electrónico no es válido.";
+          break;
+        case 'user-disabled':
+          translatedError = "Este usuario ha sido deshabilitado.";
+          break;
+        case 'too-many-requests':
+          translatedError =
+              "Se han bloqueado las solicitudes por actividad inusual. Intenta más tarde.";
+          break;
+        case 'network-request-failed':
+          translatedError = "Error de red. Revisa tu conexión a internet.";
+          break;
+        default:
+          translatedError =
+              "Error al iniciar sesión. Verifica tus credenciales.";
+          print('Error no manejado: ${e.code}');
+      }
 
       setState(() {
         errorMessage = translatedError;
@@ -135,6 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text("Registrate", style: CTextStyle.bodySmall),
                 TextButton(
                   onPressed: () {
+                    popPage();
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => RegisterScreen()),

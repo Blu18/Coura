@@ -54,6 +54,8 @@ class _CustomFieldState extends State<CustomField> {
                 )
               : Text(widget.title),
           TextFormField(
+            maxLines: widget.isThisPassword ? 1 : null,
+            expands: false,
             controller: widget.controller,
             style: CTextStyle.bodyMedium,
             obscureText: ispassClicked && widget.isThisPassword,
@@ -79,6 +81,7 @@ class _CustomFieldState extends State<CustomField> {
               focusedBorder: outlineInputBorder,
               disabledBorder: outlineInputBorder,
               focusedErrorBorder: outlineInputBorder,
+
             ),
           ),
 
