@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coura_app/screens/pending_course_task_screen.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -119,11 +120,14 @@ class ExpansionTileMateria extends StatelessWidget {
         title: Row(
           children: [
             Expanded(
-              child: Text(
-                materia,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ).copyWith(color: AppColors.indigodye),
+              child: TextButton(
+                child: Text(materia, style: CTextStyle.bodyMediuimbold.copyWith(color: AppColors.indigodye),
+                ),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PendingCourseTaskScreen(
+                    tareas: tareas, 
+                    materia: materia)));
+                },
               ),
             ),
             Chip(
