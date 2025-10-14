@@ -22,10 +22,20 @@ class _RegisterActivityState extends State<RegisterActivity> {
   TextEditingController materiacontroller = TextEditingController();
   TextEditingController fechacontroller = TextEditingController();
   TextEditingController horacontroller = TextEditingController();
-  TextEditingController prioridadController = TextEditingController();
+  String? _selectedPrioridad;
   final List<String> prioridades = ['Alta', 'Media', 'Baja'];
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    nombrecontroller.dispose();
+    descripcioncontroller.dispose();
+    materiacontroller.dispose();
+    fechacontroller.dispose();
+    horacontroller.dispose();
+    super.dispose();
+  }
 
   Future<void> _guardarTarea() async {
     // 1. Validar el formulario
@@ -47,13 +57,10 @@ class _RegisterActivityState extends State<RegisterActivity> {
 
     setState(() {
       _isLoading = true;
-    }); // Inicia el estado de carga
-
+    });
     try {
-      // 3. Combinar fecha y hora en un solo objeto DateTime
       final fechaStr = fechacontroller.text;
       final horaStr = horacontroller.text;
-      // IMPORTANTE: El formato aquí debe coincidir EXACTAMENTE con el de tus pickers
       final formato = DateFormat('dd/MM/yyyy h:mm a');
       final DateTime fechaLimite = formato.parse('$fechaStr $horaStr');
 
@@ -62,7 +69,7 @@ class _RegisterActivityState extends State<RegisterActivity> {
         'nombre': nombrecontroller.text,
         'descripcion': descripcioncontroller.text,
         'materia': materiacontroller.text,
-        'prioridad': prioridadController.text,
+        'prioridad': _selectedPrioridad,
         'fechaLimite': Timestamp.fromDate(
           fechaLimite,
         ), // Convertir a Timestamp de Firestore
@@ -176,9 +183,14 @@ class _RegisterActivityState extends State<RegisterActivity> {
                     DropdownFormFieldCustom(
                       title: "Prioridad",
                       hintText: "Selecciona una opción",
-                      controller: prioridadController,
                       items: prioridades,
                       isThisRequired: true,
+                      value: _selectedPrioridad,
+                      onChanged: (newValue) {
+                        setState(() {
+                          _selectedPrioridad = newValue;
+                        });
+                      },
                     ),
                     Padding(
                       padding: const EdgeInsets.all(12.0),

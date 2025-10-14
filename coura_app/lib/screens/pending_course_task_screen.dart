@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coura_app/screens/edit_task_screen.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -19,6 +21,37 @@ class PendingCourseTaskScreen extends StatefulWidget {
 }
 
 class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
+  late List<DocumentSnapshot> _tareasLocales;
+
+  @override
+  void initState() {
+    super.initState();
+    _tareasLocales = widget.tareas;
+  }
+
+  void _recargarTareas() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(
+          FirebaseAuth.instance.currentUser!.uid,
+        )
+        .collection('tareas')
+        .where('completada', isEqualTo: false)
+        .where('materia', isEqualTo: widget.materia) 
+        .orderBy(
+          'fechaLimite',
+          descending: false,
+        ) // Re-ejecuta la misma consulta original
+        .get();
+
+    setState(() {
+      _tareasLocales = snapshot.docs;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,17 +63,10 @@ class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
         backgroundColor: AppColors.lapizlazuli,
       ),
       body: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start, // Alinea los hijos a la izquierda
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. El header con el nombre de la materia
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              20,
-              16,
-              20,
-              0,
-            ), // Ajusta el padding
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24.0),
@@ -69,7 +95,6 @@ class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
             ),
           ),
 
-          // 2. El título "Próximas entregas"
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
             child: Text(
@@ -80,18 +105,16 @@ class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
             ),
           ),
 
-          // 3. LA LISTA DE TAREAS QUE OCUPA EL RESTO DEL ESPACIO
-          // Expanded funciona correctamente ahora porque la Column tiene un tamaño definido.
           Expanded(
             child: ListView.builder(
-              // Añade un poco de padding para que las tarjetas no peguen a los bordes
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              itemCount: widget.tareas.length,
+              itemCount: _tareasLocales.length,
               itemBuilder: (context, index) {
-                final tareaDocumento = widget.tareas[index];
-                final datosDeLaTarea =
-                    tareaDocumento.data() as Map<String, dynamic>;
-                return TareaCard(tarea: datosDeLaTarea);
+                final tareaDocumento = _tareasLocales[index];
+                return TareaCard(
+                  tareaDocumento: tareaDocumento,
+                  onEditSucces: _recargarTareas,
+                );
               },
             ),
           ),
@@ -102,12 +125,18 @@ class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
 }
 
 class TareaCard extends StatelessWidget {
-  final Map<String, dynamic> tarea;
+  final DocumentSnapshot tareaDocumento;
+  final VoidCallback onEditSucces;
 
-  const TareaCard({super.key, required this.tarea});
+  const TareaCard({
+    super.key, 
+    required this.tareaDocumento,
+    required this.onEditSucces
+  });
 
   @override
   Widget build(BuildContext context) {
+    var tarea = tareaDocumento.data() as Map<String, dynamic>;
     DateTime fechaLimite = (tarea['fechaLimite'] as Timestamp).toDate();
     String fechaFormateada = DateFormat(
       'dd/MM/yyyy - HH:mm',
@@ -164,9 +193,7 @@ class TareaCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    20,
-                  ), // Un valor alto para que sea ovalado
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ],
@@ -176,7 +203,19 @@ class TareaCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: () {},
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          EditTaskScreen(tareaDocumento: tareaDocumento),
+                    ),
+                  );
+
+                  if (result == true) {
+                    onEditSucces();
+                  }
+                },
                 child: Row(
                   children: [
                     Icon(Icons.edit_note_rounded, color: AppColors.lapizlazuli),
