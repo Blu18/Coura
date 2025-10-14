@@ -11,7 +11,7 @@ class CustomField extends StatefulWidget {
     super.key,
     required this.title,
     required this.controller,
-    required this.hintText,
+    this.hintText = '',
     this.isThisPassword = false,
     this.isthisRequired = false,
   });

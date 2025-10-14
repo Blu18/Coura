@@ -3,17 +3,19 @@ import 'package:flutter/material.dart';
 
 class DropdownFormFieldCustom extends StatefulWidget {
   final String title;
-  final TextEditingController controller; // Usamos un controller para guardar el valor
   final List<String> items; // La lista de opciones
   final String hintText;
   final bool isThisRequired;
   final String? Function(String?)? validator;
+  final String? value;
+  final ValueChanged<String?>? onChanged;  
 
   const DropdownFormFieldCustom({
     super.key,
     required this.title,
-    required this.controller,
     required this.items,
+    this.value,
+    this.onChanged,
     this.hintText = 'Selecciona una opción',
     this.isThisRequired = false,
     this.validator,
@@ -24,7 +26,6 @@ class DropdownFormFieldCustom extends StatefulWidget {
 }
 
 class _DropdownFormFieldCustomState extends State<DropdownFormFieldCustom> {
-  String? _selectedValue;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +60,7 @@ class _DropdownFormFieldCustomState extends State<DropdownFormFieldCustom> {
                 disabledBorder: outlineInputBorder,
                 focusedErrorBorder: outlineInputBorder,
             ),
-            initialValue: _selectedValue,
+            initialValue: widget.value,
             style: CTextStyle.bodySmall,
             // Mapeamos la lista de Strings a una lista de DropdownMenuItem
             items: widget.items.map((String value) {
@@ -68,12 +69,7 @@ class _DropdownFormFieldCustomState extends State<DropdownFormFieldCustom> {
                 child: Text(value, style: CTextStyle.bodySmall.copyWith(color: Colors.black87),),
               );
             }).toList(),
-            onChanged: (String? newValue) {
-              setState(() {
-                _selectedValue = newValue;
-                widget.controller.text = newValue ?? ''; // Actualizamos el controller
-              });
-            },
+            onChanged: widget.onChanged,
             validator: widget.validator ??
                 (value) {
                   if (widget.isThisRequired && value == null) {
