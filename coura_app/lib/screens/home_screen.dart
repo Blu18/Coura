@@ -1,4 +1,5 @@
 import 'package:coura_app/screens/login_screen.dart';
+import 'package:coura_app/screens/pending_task_screen.dart';
 import 'package:coura_app/screens/register_activity.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:flutter/material.dart';
@@ -67,6 +68,33 @@ class HomeScreen extends StatelessWidget {
                   SizedBox(width: 5),
                   Text(
                     "Crear Tarea",
+                    style: TextStyle(
+                      color: Colors.white,
+                    ), // Asegúrate de definir el estilo
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.verdigris,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PendingTaskScreen()),
+                );
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_outline, color: Colors.white),
+                  SizedBox(width: 5),
+                  Text(
+                    "Vizualizar tareas",
                     style: TextStyle(
                       color: Colors.white,
                     ), // Asegúrate de definir el estilo
