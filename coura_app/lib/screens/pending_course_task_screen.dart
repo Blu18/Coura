@@ -29,85 +29,73 @@ class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
         ),
         backgroundColor: AppColors.lapizlazuli,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              // 3. El truco principal: un padding superior que es MENOR a la altura
-              //    del header para crear el efecto de superposición.
-              padding: const EdgeInsets.only(
-                top: 10.0,
-                left: 20.0,
-                right: 20.0,
-              ),
-              child: Container(
-                width: double.infinity, // Ocupa todo el ancho posible
-                padding: const EdgeInsets.all(24.0),
-                decoration: BoxDecoration(
-                  color: AppColors.lapizlazuli,
-                  border: Border(
-                    bottom: BorderSide(color: AppColors.keppel, width: 6),
-                  ),
-                  // 4. Bordes redondeados para la tarjeta
-                  borderRadius: BorderRadius.circular(15.0),
-                  // Sombra sutil para darle profundidad (opcional)
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+      body: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start, // Alinea los hijos a la izquierda
+        children: [
+          // 1. El header con el nombre de la materia
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              0,
+            ), // Ajusta el padding
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24.0),
+              decoration: BoxDecoration(
+                color: AppColors.lapizlazuli,
+                border: Border(
+                  bottom: BorderSide(color: AppColors.keppel, width: 6),
                 ),
-                // Contenido de la tarjeta
-                child: Text(
-                  widget.materia,
-                  textAlign: TextAlign.start,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    height: 1.3, // Espacio entre líneas
-                  ),
-                ),
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.only(
-                top: 10.0,
-                left: 20.0,
-                right: 20.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10, width: double.infinity),
-                  Text(
-                    "Próximas entregas",
-                    style: CTextStyle.headlineLarge.copyWith(
-                      color: AppColors.lapizlazuli,
-                    ),
-                    textAlign: TextAlign.start,
-                  ),
-                  ListView.builder(
-                    itemCount: widget.tareas.length,
-                    itemBuilder: (context, index) {
-                      final tareaDocumento = widget.tareas[index];
-
-                      // 2. Convierte los datos del documento a un Map.
-                      final datosDeLaTarea =
-                          tareaDocumento.data() as Map<String, dynamic>;
-
-                      // 3. Pasa solo los datos de esa tarea al TareaCard.
-                      return TareaCard(tarea: datosDeLaTarea);
-                    },
+                borderRadius: BorderRadius.circular(15.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
+              child: Text(
+                widget.materia,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ],
-        ),
+          ),
+
+          // 2. El título "Próximas entregas"
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+            child: Text(
+              "Próximas entregas",
+              style: CTextStyle.headlineLarge.copyWith(
+                color: AppColors.lapizlazuli,
+              ),
+            ),
+          ),
+
+          // 3. LA LISTA DE TAREAS QUE OCUPA EL RESTO DEL ESPACIO
+          // Expanded funciona correctamente ahora porque la Column tiene un tamaño definido.
+          Expanded(
+            child: ListView.builder(
+              // Añade un poco de padding para que las tarjetas no peguen a los bordes
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              itemCount: widget.tareas.length,
+              itemBuilder: (context, index) {
+                final tareaDocumento = widget.tareas[index];
+                final datosDeLaTarea =
+                    tareaDocumento.data() as Map<String, dynamic>;
+                return TareaCard(tarea: datosDeLaTarea);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -162,7 +150,7 @@ class TareaCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    fechaFormateada,
+                    "Entrega: ${fechaFormateada}",
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ],
@@ -179,6 +167,27 @@ class TareaCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(
                     20,
                   ), // Un valor alto para que sea ovalado
+                ),
+              ),
+            ],
+          ),
+          Text(tarea['descripcion'], style: CTextStyle.bodySmall),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () {},
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_note_rounded, color: AppColors.lapizlazuli),
+                    SizedBox(width: 5),
+                    Text(
+                      "Editar",
+                      style: CTextStyle.bodySmall.copyWith(
+                        color: AppColors.lapizlazuli,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
