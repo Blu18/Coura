@@ -12,6 +12,7 @@ ValueNotifier<AuthService> authService = ValueNotifier(AuthService());
 
 class AuthService {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   User? get currentUser => firebaseAuth.currentUser;
 
@@ -37,11 +38,33 @@ class AuthService {
   Future<UserCredential> signIn({
     required String email,
     required String password,
+    required bool rememberMe,
   }) async {
-    return await firebaseAuth.signInWithEmailAndPassword(
+    UserCredential userCredential = await firebaseAuth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
+    
+    // Guardar preferencia en Firestore
+    if (userCredential.user != null) {
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'rememberMe': rememberMe,
+      }, SetOptions(merge: true));
+    }
+    
+    return userCredential;
+  }
+
+  Future<bool> shouldKeepSession() async {
+    final user = firebaseAuth.currentUser;
+    if (user == null) return false;
+    
+    try {
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      return doc.data()?['rememberMe'] ?? false;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<UserCredential> createAccount({
@@ -54,7 +77,15 @@ class AuthService {
     );
   }
 
-  Future<void> signOut() async {
+   Future<void> signOut() async {
+    final user = firebaseAuth.currentUser;
+    
+    if (user != null) {
+      await _firestore.collection('users').doc(user.uid).set({
+        'rememberMe': false,
+      }, SetOptions(merge: true));
+    }
+    
     await firebaseAuth.signOut();
   }
 
@@ -98,22 +129,16 @@ class AuthService {
 
   Future<classroom.ClassroomApi?> getClassroomApi() async {
     try {
-      // 2. Primero, asegúrate de que el usuario haya iniciado sesión silenciosamente.
-      // Esto recupera la sesión si ya se concedió el permiso anteriormente, sin pedirle al usuario que vuelva a seleccionar su cuenta.
       final GoogleSignInAccount? googleUser = await _googleSignIn
           .signInSilently();
 
       if (googleUser == null) {
-        // Si no hay sesión silenciosa, no se puede continuar.
-        // Podrías iniciar el flujo de signIn() completo aquí si quisieras.
         print(
           "El usuario no ha iniciado sesión con Google o revocó los permisos.",
         );
         return null;
       }
 
-      // 3. ¡La magia del nuevo paquete!
-      // Obtén el cliente http autenticado.
       final http.Client? client = await _googleSignIn.authenticatedClient();
 
       if (client == null) {
@@ -121,7 +146,6 @@ class AuthService {
         return null;
       }
 
-      // 4. Crea y devuelve la instancia de la API de Classroom, ¡lista para usar!
       return classroom.ClassroomApi(client);
     } catch (e) {
       print("Error al obtener el cliente de Classroom API: $e");
@@ -130,13 +154,11 @@ class AuthService {
   }
 
   Future<GoogleSignInAccount?> linkGoogleAccount() async {
-    // 1. Declara googleUser aquí para que esté disponible en el 'catch'
     GoogleSignInAccount? googleUser;
     GoogleSignInAuthentication? googleAuth;
 
     try {
       await _googleSignIn.signOut();
-      // 2. Inicia el flujo de inicio de sesión INTERACTIVO
       googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -144,23 +166,20 @@ class AuthService {
         return null;
       }
 
-      // 3. Obtiene las credenciales
       googleAuth = await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // 4. Intenta vincular la credencial a la cuenta de Firebase
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         await user.linkWithCredential(credential);
         print("¡Cuenta de Firebase vinculada con Google exitosamente!");
 
-        // 4. Llama a tu nueva función helper
         await _handlePostLinkActions(googleUser, googleAuth);
 
-        return googleUser; // Vinculación exitosa por primera vez
+        return googleUser;
       }
 
       return null;
@@ -168,8 +187,6 @@ class AuthService {
       if (e.code == 'credential-already-in-use') {
         print("Esta cuenta de Google ya está vinculada (lo cual es correcto).");
 
-        // 5. ¡AQUÍ ESTÁ LA MAGIA!
-        // Vuelve a llamar a la misma función helper
         if (googleUser != null && googleAuth != null) {
           print(
             "Procediendo a registrar notificaciones para la cuenta ya vinculada...",
@@ -184,11 +201,9 @@ class AuthService {
         }
       }
 
-      // Si fue otro error de Firebase
       print("Error de Firebase al vincular: ${e.message}");
       return null;
     } catch (e) {
-      // Cualquier otro error inesperado
       print("Ocurrió un error inesperado al vincular: $e");
       return null;
     }

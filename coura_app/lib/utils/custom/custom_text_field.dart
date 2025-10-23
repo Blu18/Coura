@@ -52,13 +52,17 @@ class _CustomFieldState extends State<CustomField> {
                     ],
                   ),
                 )
-              : RichText(text: TextSpan(
+              : RichText(
+                  text: TextSpan(
                     // Estilo por defecto para el texto, heredado por los hijos.
                     // Puedes cambiarlo por tu CTextStyle.bodyMedium si es necesario.
                     style: DefaultTextStyle.of(context).style,
                     children: <TextSpan>[
                       // Primera parte del texto: el título
-                      TextSpan(text: widget.title),])),
+                      TextSpan(text: widget.title),
+                    ],
+                  ),
+                ),
           TextFormField(
             maxLines: widget.isThisPassword ? 1 : null,
             expands: false,
@@ -87,22 +91,9 @@ class _CustomFieldState extends State<CustomField> {
               focusedBorder: outlineInputBorder,
               disabledBorder: outlineInputBorder,
               focusedErrorBorder: outlineInputBorder,
-
             ),
           ),
 
-          if (widget.isThisPassword) ...[
-            SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                "¿Olvidaste tu contraseña?",
-                style: CTextStyle.bodySmall.copyWith(
-                  color: const Color.fromARGB(255, 80, 80, 80),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
