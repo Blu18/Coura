@@ -43,7 +43,8 @@ class _PendingTaskScreen extends State<PendingTaskScreen> {
         stream: FirebaseFirestore.instance
             .collection('users')
             .doc(FirebaseAuth.instance.currentUser!.uid)
-            .collection('tareas')
+            .collection('assignments')
+            .where('completada', isEqualTo: false)
             .orderBy(
               'fechaLimite',
               descending: false,
@@ -121,12 +122,22 @@ class ExpansionTileMateria extends StatelessWidget {
           children: [
             Expanded(
               child: TextButton(
-                child: Text(materia, style: CTextStyle.bodyMediuimbold.copyWith(color: AppColors.indigodye),
+                child: Text(
+                  materia,
+                  style: CTextStyle.bodyMediuimbold.copyWith(
+                    color: AppColors.indigodye,
+                  ),
                 ),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PendingCourseTaskScreen(
-                    tareas: tareas, 
-                    materia: materia)));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PendingCourseTaskScreen(
+                        tareas: tareas,
+                        materia: materia,
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
@@ -162,10 +173,24 @@ class TareaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    DateTime fechaLimite = (tarea['fechaLimite'] as Timestamp).toDate();
-    String fechaFormateada = DateFormat(
-      'dd/MM/yyyy - HH:mm',
-    ).format(fechaLimite);
+    final rawFecha = tarea['fechaLimite'];
+    DateTime? fechaLimite;
+
+    if (rawFecha != null) {
+      fechaLimite = (rawFecha as Timestamp).toDate();
+    }
+
+    // 1. Declara la variable de texto
+    String fechaFormateada;
+
+    // 2. Comprueba si 'fechaLimite' es nulo ANTES de llamar a .format()
+    if (fechaLimite != null) {
+      // Si NO es nulo, formatea la fecha
+      fechaFormateada = DateFormat('dd/MM/yyyy - HH:mm').format(fechaLimite);
+    } else {
+      // Si ES nulo, asigna un texto por defecto
+      fechaFormateada = "Sin fecha límite";
+    }
 
     Color pColor;
     if (tarea['prioridad'] == 'Alta') {

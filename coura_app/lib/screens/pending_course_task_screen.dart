@@ -35,12 +35,10 @@ class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
 
     final QuerySnapshot snapshot = await FirebaseFirestore.instance
         .collection('users')
-        .doc(
-          FirebaseAuth.instance.currentUser!.uid,
-        )
-        .collection('tareas')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .collection('assignments')
         .where('completada', isEqualTo: false)
-        .where('materia', isEqualTo: widget.materia) 
+        .where('materia', isEqualTo: widget.materia)
         .orderBy(
           'fechaLimite',
           descending: false,
@@ -129,18 +127,32 @@ class TareaCard extends StatelessWidget {
   final VoidCallback onEditSucces;
 
   const TareaCard({
-    super.key, 
+    super.key,
     required this.tareaDocumento,
-    required this.onEditSucces
+    required this.onEditSucces,
   });
 
   @override
   Widget build(BuildContext context) {
     var tarea = tareaDocumento.data() as Map<String, dynamic>;
-    DateTime fechaLimite = (tarea['fechaLimite'] as Timestamp).toDate();
-    String fechaFormateada = DateFormat(
-      'dd/MM/yyyy - HH:mm',
-    ).format(fechaLimite);
+    final rawFecha = tarea['fechaLimite'];
+    DateTime? fechaLimite;
+
+    if (rawFecha != null) {
+      fechaLimite = (rawFecha as Timestamp).toDate();
+    }
+
+    // 1. Declara la variable de texto
+    String fechaFormateada;
+
+    // 2. Comprueba si 'fechaLimite' es nulo ANTES de llamar a .format()
+    if (fechaLimite != null) {
+      // Si NO es nulo, formatea la fecha
+      fechaFormateada = DateFormat('dd/MM/yyyy - HH:mm').format(fechaLimite);
+    } else {
+      // Si ES nulo, asigna un texto por defecto
+      fechaFormateada = "Sin fecha límite";
+    }
 
     Color pColor;
     if (tarea['prioridad'] == 'Alta') {
@@ -199,38 +211,43 @@ class TareaCard extends StatelessWidget {
             ],
           ),
           Text(tarea['descripcion'], style: CTextStyle.bodySmall),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          EditTaskScreen(tareaDocumento: tareaDocumento),
-                    ),
-                  );
-
-                  if (result == true) {
-                    onEditSucces();
-                  }
-                },
-                child: Row(
+          tarea['classroomId'] == null
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(Icons.edit_note_rounded, color: AppColors.lapizlazuli),
-                    SizedBox(width: 5),
-                    Text(
-                      "Editar",
-                      style: CTextStyle.bodySmall.copyWith(
-                        color: AppColors.lapizlazuli,
+                    TextButton(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                EditTaskScreen(tareaDocumento: tareaDocumento),
+                          ),
+                        );
+
+                        if (result == true) {
+                          onEditSucces();
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.edit_note_rounded,
+                            color: AppColors.lapizlazuli,
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            "Editar",
+                            style: CTextStyle.bodySmall.copyWith(
+                              color: AppColors.lapizlazuli,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ),
-            ],
-          ),
+                )
+              : SizedBox(height: 10,),
         ],
       ),
     );

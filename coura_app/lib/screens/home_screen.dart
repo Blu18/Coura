@@ -1,17 +1,29 @@
 import 'package:coura_app/screens/login_screen.dart';
 import 'package:coura_app/screens/pending_task_screen.dart';
 import 'package:coura_app/screens/register_activity.dart';
+import 'package:coura_app/screens/sync_assignments.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
+import 'package:coura_app/utils/styles/text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/auth_service.dart'; // Importa el servicio
+import '../services/auth_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    authService.value.syncClassroomData();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Obtiene la información del usuario actual
     final User? user = FirebaseAuth.instance.currentUser;
 
     void popPage() {
@@ -94,7 +106,7 @@ class HomeScreen extends StatelessWidget {
                   Icon(Icons.check_circle_outline, color: Colors.white),
                   SizedBox(width: 5),
                   Text(
-                    "Vizualizar tareas",
+                    "Visualizar tareas",
                     style: TextStyle(
                       color: Colors.white,
                     ), // Asegúrate de definir el estilo
@@ -102,12 +114,27 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.verdigris,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              onPressed: () async {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SyncAssignments()),
+                );
+              },
+              child: Text('Sincronizar con Classroom', style: CTextStyle.bodyMediuimbold.copyWith(color: Colors.white)),
+            ),
             Text('¡Bienvenido!'),
             const SizedBox(height: 10),
             // Muestra el nombre del usuario si está disponible
             Text(
               user?.displayName ?? 'Usuario',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: CTextStyle.bodyMediuimbold.copyWith(color: Colors.black),
             ),
           ],
         ),

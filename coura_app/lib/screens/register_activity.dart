@@ -82,7 +82,7 @@ class _RegisterActivityState extends State<RegisterActivity> {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .collection('tareas')
+          .collection('assignments')
           .add(datosTarea);
 
       // 6. Mostrar mensaje de éxito y navegar hacia atrás
