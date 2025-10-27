@@ -92,8 +92,17 @@ class _CustomFieldState extends State<CustomField> {
               disabledBorder: outlineInputBorder,
               focusedErrorBorder: outlineInputBorder,
             ),
+            autovalidateMode: AutovalidateMode
+                .onUserInteraction, // Opcional: valida mientras el usuario escribe
+            validator: widget.isthisRequired
+                ? (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return '${widget.title} no puede estar vacío.';
+                    }
+                    return null;
+                  }
+                : null,
           ),
-
         ],
       ),
     );

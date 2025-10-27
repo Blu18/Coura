@@ -114,6 +114,7 @@ class ExpansionTileMateria extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: const Color.fromARGB(255, 248, 248, 248),
       margin: const EdgeInsets.symmetric(vertical: 10.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ExpansionTile(
@@ -171,27 +172,37 @@ class TareaCard extends StatelessWidget {
 
   const TareaCard({super.key, required this.tarea});
 
+  String? getEstadoFecha(int diasRestantes) {
+    if (diasRestantes < 0) return "Vencida";
+    if (diasRestantes < 3) return "Por vencer";
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final rawFecha = tarea['fechaLimite'];
     DateTime? fechaLimite;
-
+    
+    // Primero convertir la fecha
     if (rawFecha != null) {
       fechaLimite = (rawFecha as Timestamp).toDate();
     }
 
-    // 1. Declara la variable de texto
-    String fechaFormateada;
-
-    // 2. Comprueba si 'fechaLimite' es nulo ANTES de llamar a .format()
+    // Luego calcular días restantes y estado
+    int? diasRestantes;
+    String? estado;
+    
     if (fechaLimite != null) {
-      // Si NO es nulo, formatea la fecha
-      fechaFormateada = DateFormat('dd/MM/yyyy - HH:mm').format(fechaLimite);
-    } else {
-      // Si ES nulo, asigna un texto por defecto
-      fechaFormateada = "Sin fecha límite";
+      diasRestantes = fechaLimite.difference(DateTime.now()).inDays;
+      estado = getEstadoFecha(diasRestantes);
     }
 
+    // Formatear la fecha
+    String fechaFormateada = fechaLimite != null
+        ? DateFormat('dd/MM/yyyy - HH:mm').format(fechaLimite)
+        : 'Sin fecha';
+
+    // Determinar color de prioridad
     Color pColor;
     if (tarea['prioridad'] == 'Alta') {
       pColor = AppColors.indigodye;
@@ -237,19 +248,37 @@ class TareaCard extends StatelessWidget {
               Chip(
                 label: Text(tarea['prioridad']),
                 backgroundColor: pColor,
-                labelStyle: TextStyle(
+                labelStyle: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    20,
-                  ), // Un valor alto para que sea ovalado
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ],
           ),
+          if (estado != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: estado == "Vencida" 
+                    ? Colors.red.shade100 
+                    : Colors.orange.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                estado,
+                style: TextStyle(
+                  color: estado == "Vencida" ? Colors.red : Colors.orange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

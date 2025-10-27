@@ -161,6 +161,7 @@ class _RegisterActivityState extends State<RegisterActivity> {
                       title: "Materia",
                       controller: materiacontroller,
                       hintText: "Ej: Inglés Técnico Avanzado",
+                      isthisRequired: true,
                     ),
                     Row(
                       children: [
@@ -176,6 +177,7 @@ class _RegisterActivityState extends State<RegisterActivity> {
                           child: TimePickerFormField(
                             title: "Hora",
                             controller: horacontroller,
+                            isThisRequired: true,
                           ),
                         ),
                       ],

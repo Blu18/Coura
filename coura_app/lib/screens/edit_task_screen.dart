@@ -185,7 +185,101 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                 ),
-                onPressed: () {},
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.red,
+                              size: 80,
+                            ),
+                            SizedBox(height: 20),
+                            Text(
+                              "¿Estás seguro?",
+                              style: CTextStyle.bodyLarge.copyWith(
+                                color: Colors.black,
+                              ),
+                            ),
+                            Text(
+                              "¿Deseas eliminar permanentemente la tarea?",
+                              style: CTextStyle.bodySmall,
+                            ),
+                            SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 36.3,
+                                    ),
+                                    backgroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                    side: BorderSide(
+                                      color: const Color.fromARGB(
+                                        255,
+                                        56,
+                                        56,
+                                        56,
+                                      ), // Color del borde
+                                      width: 0.5, // Grosor del borde
+                                    ),
+                                  ),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: Text(
+                                    "Cancelar",
+                                    style: CTextStyle.bodyMediuimbold.copyWith(
+                                      color: const Color.fromARGB(
+                                        255,
+                                        103,
+                                        102,
+                                        102,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                SizedBox(width: 10),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 36.3,
+                                    ),
+                                    backgroundColor: Colors.red,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(context, false);
+                                    widget.tareaDocumento.reference.delete();
+                                    Navigator.pop(context, true);
+                                    
+                                  },
+                                  child: Text(
+                                    "Eliminar",
+                                    style: CTextStyle.bodyMediuimbold.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

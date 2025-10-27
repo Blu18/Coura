@@ -53,6 +53,7 @@ class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 248, 248, 248),
       appBar: AppBar(
         title: Text(
           "Tareas Pendientes",
@@ -210,7 +211,7 @@ class TareaCard extends StatelessWidget {
               ),
             ],
           ),
-          Text(tarea['descripcion'], style: CTextStyle.bodySmall),
+          Text(tarea['descripcion'] ?? "", style: CTextStyle.bodySmall),
           tarea['classroomId'] == null
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.end,

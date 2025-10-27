@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:googleapis/classroom/v1.dart' as classroom;
 
+ValueNotifier<ClassroomService> classroomService = ValueNotifier(ClassroomService());
 class ClassroomService {
   final AuthService _authService = AuthService();
 
@@ -111,7 +112,7 @@ class ClassroomService {
     final tareasRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
-        .collection('tareas');
+        .collection('assignments');
 
     // 2. ✨ Lógica para evitar duplicados ✨
     // Buscamos si ya existe una tarea con el ID único de Classroom.
