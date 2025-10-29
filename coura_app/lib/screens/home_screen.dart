@@ -39,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(builder: (context) => LoginScreen()),
         );
       } on FirebaseAuthException catch (e) {
-        print(e.message);
+        debugPrint(e.message);
       }
     }
 
@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     "Visualizar tareas",
                     style: TextStyle(
                       color: Colors.white,
-                    ), // Asegúrate de definir el estilo
+                    ),
                   ),
                 ],
               ),

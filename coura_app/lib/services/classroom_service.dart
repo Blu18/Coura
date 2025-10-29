@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:coura_app/services/auth_service.dart'; // Assuming your AuthService is here
+import 'package:coura_app/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:googleapis/classroom/v1.dart' as classroom;
 
-ValueNotifier<ClassroomService> classroomService = ValueNotifier(ClassroomService());
+ValueNotifier<ClassroomService> classroomService = ValueNotifier(
+  ClassroomService(),
+);
+
 class ClassroomService {
   final AuthService _authService = AuthService();
 
@@ -14,31 +17,26 @@ class ClassroomService {
 
     if (googleAccount == null) {
       print("La vinculación/inicio de sesión falló. No se puede sincronizar.");
-      return; // No se pudo vincular, así que detenemos el proceso.
-    }
-
-    // 2. AHORA, obtén la API y busca las tareas (como antes).
-    print("Vinculación exitosa. Buscando tareas...");
-    final classroomApi = await _authService
-        .getClassroomApi(); // Esto ahora usará la sesión que acabamos de establecer.
-
-    if (classroomApi == null) {
-      // ... manejo de error
       return;
     }
 
-    // ... (El resto de tu lógica para buscar y guardar las tareas en Firestore va aquí) ...
+    print("Vinculación exitosa. Buscando tareas...");
+    final classroomApi = await _authService.getClassroomApi();
+
+    if (classroomApi == null) {
+      return;
+    }
+
     await fetchAndSyncAssignments(classroomApi);
   }
 
-  // This is the main function you'll call from your UI
   Future<void> fetchAndSyncAssignments(
     classroom.ClassroomApi classroomApi,
   ) async {
     debugPrint("Intentando obtener cliente API de classroom...");
 
     try {
-      // 1. Obtener los cursos del usuario
+      // Obtener los cursos del usuario
       final response = await classroomApi.courses.list(studentId: 'me');
       final courses = response.courses;
 
@@ -51,10 +49,9 @@ class ClassroomService {
         "Se encontraron ${courses.length} cursos. Extrayendo trabajos...",
       );
 
-      // 2. Recorremos cada curso
+      // Recorremos cada curso
       for (final course in courses) {
         if (course.courseState == 'ACTIVE') {
-
           final courseworkResponse = await classroomApi.courses.courseWork.list(
             course.id!,
           );
@@ -62,34 +59,27 @@ class ClassroomService {
 
           if (assignments == null || assignments.isEmpty) continue;
 
-          // 4. Recorremos cada tarea para obtener sus entregas
+          // Recorremos cada tarea para obtener sus entregas
           for (final work in assignments) {
-
             final submissionsResponse = await classroomApi
                 .courses
                 .courseWork
                 .studentSubmissions
-                .list(
-                  course.id!, // ID del curso
-                  work.id!, // ID de la tarea
-                  userId: 'me',
-                );
+                .list(course.id!, work.id!, userId: 'me');
 
             final submissions = submissionsResponse.studentSubmissions ?? [];
-
-            // 5. Tomamos la primera entrega (solo habrá una por alumno)
             final submission = submissions.isNotEmpty
                 ? submissions.first
                 : null;
 
-            // 6. Guardamos la tarea y su estado
+            // Guardamos la tarea y su estado
             await _saveAssignmentToFirestore(
-              work, // La tarea actual
-              course.name ?? 'Sin nombre', // Nombre del curso
-              submission, // La entrega del alumno
+              work,
+              course.name ?? 'Sin nombre',
+              submission,
             );
 
-            // 7. Mensaje de depuración
+            // Mensaje de depuración
             // final state = submission?.state ?? 'SIN ENVÍO';
             // debugPrint("→ ${work.title} (${state}) guardada en Firestore");
           }
@@ -105,7 +95,7 @@ class ClassroomService {
     String courseName,
     classroom.StudentSubmission? submission,
   ) async {
-    // 1. Obtener el usuario actual
+    // Obtener el usuario actual
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return; // Salir si no hay usuario
 
@@ -114,7 +104,7 @@ class ClassroomService {
         .doc(user.uid)
         .collection('assignments');
 
-    // 2. ✨ Lógica para evitar duplicados ✨
+    // Lógica para evitar duplicados
     // Buscamos si ya existe una tarea con el ID único de Classroom.
     final query = await tareasRef
         .where('classroomId', isEqualTo: assignment.id)
@@ -126,7 +116,7 @@ class ClassroomService {
       return;
     }
 
-    // 3. Mapear los datos de Classroom a tu estructura de Firestore
+    // Mapear los datos de Classroom a estructura de Firestore
     DateTime? fechaLimite;
     if (assignment.dueDate != null) {
       // Combinamos la fecha y la hora de Classroom en un solo objeto DateTime
@@ -173,7 +163,7 @@ class ClassroomService {
           .alternateLink, // Muy útil para que el usuario pueda ir a la tarea
     };
 
-    // 4. Añadir la nueva tarea a Firestore
+    // Añadir la nueva tarea a Firestore
     await tareasRef.add(datosTarea);
   }
 }

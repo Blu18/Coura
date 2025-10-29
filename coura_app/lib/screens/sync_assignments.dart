@@ -1,8 +1,8 @@
-import 'package:coura_app/services/classroom_service.dart';
+import 'package:coura_app/services/auth_service.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class SyncAssignments extends StatefulWidget {
   const SyncAssignments({super.key});
@@ -12,6 +12,8 @@ class SyncAssignments extends StatefulWidget {
 }
 
 class _SyncAssignmentsState extends State<SyncAssignments> {
+  GoogleSignInAccount? googleUser;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,11 +61,21 @@ class _SyncAssignmentsState extends State<SyncAssignments> {
                   barrierDismissible: false,
                   builder: (BuildContext context) {
                     return AlertDialog(
-                      content: Row(
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(color: AppColors.lapizlazuli,),
-                          SizedBox(width: 20),
-                          Center(child: Text('Sincronizando...',)),
+                          Row(
+                            children: [
+                              CircularProgressIndicator(
+                                color: AppColors.lapizlazuli,
+                              ),
+                              SizedBox(width: 20),
+                              Center(child: Text('Sincronizando...', style: CTextStyle.bodyMediuimbold,)),
+                            ],
+                          ),
+                          SizedBox(height: 10,),
+                          Center(child: Text('Esto puede tardar unos minutos', style: CTextStyle.bodySmall,))
                         ],
                       ),
                     );
@@ -71,16 +83,16 @@ class _SyncAssignmentsState extends State<SyncAssignments> {
                 );
 
                 try {
-                  final classroomService = ClassroomService();
-                  await classroomService.syncTasks();
+                  googleUser = await authService.value.linkGoogleAccount();
 
                   // Cerrar el diálogo
                   Navigator.of(context).pop();
 
                   // Mostrar mensaje de éxito
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('¡Sincronización completada!'),
+                    SnackBar(
+                      backgroundColor:  googleUser != null ? AppColors.lapizlazuli : Colors.red,
+                      content: googleUser != null ? Text('¡Sincronización completada!') : Text('Error al sincronizar'),
                       duration: Duration(seconds: 3),
                     ),
                   );

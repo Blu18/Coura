@@ -131,7 +131,7 @@ class AuthService {
           .signInSilently();
 
       if (googleUser == null) {
-        print(
+        debugPrint(
           "El usuario no ha iniciado sesión con Google o revocó los permisos.",
         );
         return null;
@@ -140,13 +140,13 @@ class AuthService {
       final http.Client? client = await _googleSignIn.authenticatedClient();
 
       if (client == null) {
-        print("Error: No se pudo crear el cliente autenticado.");
+        debugPrint("Error: No se pudo crear el cliente autenticado.");
         return null;
       }
 
       return classroom.ClassroomApi(client);
     } catch (e) {
-      print("Error al obtener el cliente de Classroom API: $e");
+      debugPrint("Error al obtener el cliente de Classroom API: $e");
       return null;
     }
   }
@@ -160,7 +160,7 @@ class AuthService {
       googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        print("El usuario canceló el inicio de sesión con Google.");
+        debugPrint("El usuario canceló el inicio de sesión con Google.");
         return null;
       }
 
@@ -173,7 +173,7 @@ class AuthService {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         await user.linkWithCredential(credential);
-        print("¡Cuenta de Firebase vinculada con Google exitosamente!");
+        debugPrint("¡Cuenta de Firebase vinculada con Google exitosamente!");
 
         await _handlePostLinkActions(googleUser, googleAuth);
 
@@ -183,26 +183,26 @@ class AuthService {
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'credential-already-in-use') {
-        print("Esta cuenta de Google ya está vinculada (lo cual es correcto).");
+        debugPrint("Esta cuenta de Google ya está vinculada (lo cual es correcto).");
 
         if (googleUser != null && googleAuth != null) {
-          print(
+          debugPrint(
             "Procediendo a registrar notificaciones para la cuenta ya vinculada...",
           );
           await _handlePostLinkActions(googleUser, googleAuth);
           return googleUser;
         } else {
-          print(
+          debugPrint(
             "Error: No se pudo obtener googleUser o googleAuth en el catch.",
           );
           return null;
         }
       }
 
-      print("Error de Firebase al vincular: ${e.message}");
+      debugPrint("Error de Firebase al vincular: ${e.message}");
       return null;
     } catch (e) {
-      print("Ocurrió un error inesperado al vincular: $e");
+      debugPrint("Ocurrió un error inesperado al vincular: $e");
       return null;
     }
   }
@@ -214,7 +214,7 @@ class AuthService {
     try {
       final String? authCode = googleUser.serverAuthCode;
       if (authCode == null) {
-        print(
+        debugPrint(
           "Error: No se recibió serverAuthCode. Verifica tu serverClientId.",
         );
         return;
@@ -223,7 +223,7 @@ class AuthService {
       // Necesitamos el Firebase ID token
       final User? user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print("Error: No hay usuario de Firebase logueado.");
+        debugPrint("Error: No hay usuario de Firebase logueado.");
         return;
       }
       final String? firebaseIdToken = await user.getIdToken();
@@ -240,29 +240,29 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        print("¡Éxito! Refresh token guardado en el backend.");
+        debugPrint("¡Éxito! Refresh token guardado en el backend.");
         await syncClassroomData();
       } else {
-        print("Error al guardar token: ${response.body}");
+        debugPrint("Error al guardar token: ${response.body}");
       }
     } catch (e) {
-      print("Error en _handlePostLinkActions: $e");
+      debugPrint("Error en _handlePostLinkActions: $e");
     }
   }
 
   Future<void> syncClassroomData() async {
-    print("Iniciando sincronización de Classroom...");
+    debugPrint("Iniciando sincronización de Classroom...");
     final db = FirebaseFirestore.instance;
 
     final api = await getClassroomApi();
     if (api == null) {
-      print("Error: No se pudo obtener la API de Classroom.");
+      debugPrint("Error: No se pudo obtener la API de Classroom.");
       return;
     }
 
     final user = firebaseAuth.currentUser;
     if (user == null) {
-      print("Error: No hay usuario logueado.");
+      debugPrint("Error: No hay usuario logueado.");
       return;
     }
 
@@ -275,11 +275,11 @@ class AuthService {
       final courses = courseListResponse.courses;
 
       if (courses == null || courses.isEmpty) {
-        print("No se encontraron cursos activos.");
+        debugPrint("No se encontraron cursos activos.");
         return;
       }
 
-      print("✅ Encontrados ${courses.length} cursos activos");
+      debugPrint("Encontrados ${courses.length} cursos activos");
 
       final batch = db.batch();
       final activeCourseIds = <String>[];
@@ -289,7 +289,7 @@ class AuthService {
         final courseName = course.name ?? 'Curso Sin Nombre';
         activeCourseIds.add(courseId);
 
-        print("Obteniendo tareas para el curso: $courseName");
+        debugPrint("Obteniendo tareas para el curso: $courseName");
 
         try {
           final courseworkResponse = await api.courses.courseWork.list(
@@ -301,7 +301,7 @@ class AuthService {
           final assignments = courseworkResponse.courseWork;
 
           if (assignments != null && assignments.isNotEmpty) {
-            print("   📝 $courseName: ${assignments.length} tareas");
+            debugPrint("   📝 $courseName: ${assignments.length} tareas");
 
             for (var assignment in assignments) {
               final assignmentId = assignment.id!;
@@ -323,7 +323,7 @@ class AuthService {
                   submissionState = studentSubmissions[0].state ?? 'NEW';
                 }
               } catch (e) {
-                print("      ⚠️ Error verificando submission: $e");
+                debugPrint("Error verificando submission: $e");
               }
 
               // Referencia al documento
@@ -350,43 +350,43 @@ class AuthService {
                 final newCompletada = taskData['completada'];
 
                 if (!oldCompletada && newCompletada) {
-                  print("      ✅ $title - Marcada como completada");
+                  debugPrint("$title - Marcada como completada");
                   batch.update(docRef, {
                     'completada': true,
                     'submission_state': submissionState,
                     'ultima_actualizacion': FieldValue.serverTimestamp(),
                   });
                 } else if (oldCompletada && !newCompletada) {
-                  print("      🔄 $title - Reabierta (estaba completada)");
+                  debugPrint("$title - Reabierta (estaba completada)");
                   batch.set(docRef, taskData);
                 } else {
-                  print("      📋 $title - Sin cambios");
+                  debugPrint("$title - Sin cambios");
                 }
               } else {
                 // Tarea NUEVA
                 if (['TURNED_IN', 'RETURNED'].contains(submissionState)) {
-                  print("      ✓ $title - Ya entregada, solo guardando");
+                  debugPrint("$title - Ya entregada, solo guardando");
                 } else {
-                  print("      ✨ NUEVA (Pendiente): $title");
+                  debugPrint("NUEVA (Pendiente): $title");
                 }
                 batch.set(docRef, taskData);
               }
             }
           }
         } catch (e) {
-          print("   ⚠️ Error en curso $courseName: $e");
+          debugPrint("Error en curso $courseName: $e");
           continue;
         }
       }
 
       // Guardar cambios
       await batch.commit();
-      print("✅ Sincronización completada");
+      debugPrint("Sincronización completada");
 
       // Marcar tareas de cursos archivados
       await _markArchivedCourseTasks(user.uid, activeCourseIds);
     } catch (e) {
-      print("Error durante la sincronización: $e");
+      debugPrint("Error durante la sincronización: $e");
     }
   }
 
@@ -463,7 +463,7 @@ class AuthService {
     List<String> activeCourseIds,
   ) async {
     try {
-      print("🗄️ Verificando tareas de cursos archivados...");
+      debugPrint("Verificando tareas de cursos archivados...");
 
       final db = FirebaseFirestore.instance;
 
@@ -486,8 +486,8 @@ class AuthService {
           final cursoArchivado = taskData['curso_archivado'] ?? false;
 
           if (!cursoArchivado) {
-            print(
-              "   📦 Archivando tarea: ${taskData['nombre'] ?? 'Sin título'}",
+            debugPrint(
+              "Archivando tarea: ${taskData['nombre'] ?? 'Sin título'}",
             );
 
             batch.update(taskDoc.reference, {
@@ -501,12 +501,12 @@ class AuthService {
 
       if (archivedCount > 0) {
         await batch.commit();
-        print("✅ $archivedCount tareas marcadas como archivadas");
+        debugPrint("$archivedCount tareas marcadas como archivadas");
       } else {
-        print("✓ No hay tareas nuevas de cursos archivados");
+        debugPrint("No hay tareas nuevas de cursos archivados");
       }
     } catch (e) {
-      print("⚠️ Error marcando tareas archivadas: $e");
+      debugPrint("Error marcando tareas archivadas: $e");
     }
   }
 }
