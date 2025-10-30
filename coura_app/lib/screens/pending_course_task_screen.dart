@@ -47,6 +47,9 @@ class _PendingCourseTaskScreen extends State<PendingCourseTaskScreen> {
 
     setState(() {
       _tareasLocales = snapshot.docs;
+      if(_tareasLocales.isEmpty) {
+        Navigator.pop(context);
+      }
     });
   }
 

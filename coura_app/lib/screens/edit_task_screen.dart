@@ -148,7 +148,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                 title: "Descripción",
                 controller: descripcionController,
               ),
-              CustomField(title: "Materia", controller: materiaController),
+              CustomField(title: "Materia", controller: materiaController, isthisRequired: true,),
               Row(
                 children: [
                   Expanded(
