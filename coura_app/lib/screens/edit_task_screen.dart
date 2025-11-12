@@ -99,6 +99,22 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
     }
   }
 
+  Future<void> _marcarCompletado() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      await widget.tareaDocumento.reference.update({'completada': true});
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('¡Tarea Completada!')));
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Errorr al completar: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,6 +126,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
         backgroundColor: AppColors.lapizlazuli,
         centerTitle: true,
       ),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -118,7 +135,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(20.0),
                 decoration: BoxDecoration(
                   color: Color(0xFFE91E63),
                   borderRadius: BorderRadius.circular(15.0),
@@ -139,6 +156,33 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                   ),
                 ),
               ),
+              SizedBox(height: 10,),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(15.0),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 248, 248, 248),
+                  borderRadius: BorderRadius.circular(15.0),
+                ),
+                child: Row(
+                  children: [
+                    Column(
+                      children: [
+                        Text("Estatus de la Tarea:", style: CTextStyle.bodyMediuimbold.copyWith(color: const Color.fromARGB(255, 90, 90, 90)),)
+                      ],
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(widget.tareaDocumento['completada'] ? "Completada" : "Pendiente", 
+                          style: CTextStyle.bodyMediuimbold.copyWith(color: widget.tareaDocumento['completada'] ? Colors.green : Colors.red),)
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
               CustomField(
                 title: "Nombre / Titulo",
                 controller: nombreController,
@@ -148,7 +192,11 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                 title: "Descripción",
                 controller: descripcionController,
               ),
-              CustomField(title: "Materia", controller: materiaController, isthisRequired: true,),
+              CustomField(
+                title: "Materia",
+                controller: materiaController,
+                isthisRequired: true,
+              ),
               Row(
                 children: [
                   Expanded(
@@ -179,6 +227,28 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
               ),
               const SizedBox(height: 12),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.lightgreen,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+                onPressed: _marcarCompletado,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_outline, color: Colors.white),
+                    SizedBox(width: 5),
+                    Text(
+                      "MARCAR COMO COMPLETADO ",
+                      style: TextStyle(
+                        color: Colors.white,
+                      ), // Asegúrate de definir el estilo
+                    ),
+                  ],
+                ),
+              ),
+              /*ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   shape: RoundedRectangleBorder(
@@ -278,7 +348,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                         ),
                       );
                     },
-                  );
+                  )
                 },
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -289,11 +359,11 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                       "ELIMINAR TAREA",
                       style: TextStyle(
                         color: Colors.white,
-                      ), // Asegúrate de definir el estilo
+                      ),
                     ),
                   ],
                 ),
-              ),
+              ),*/
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.verdigris,
