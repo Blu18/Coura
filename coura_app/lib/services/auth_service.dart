@@ -77,6 +77,7 @@ class AuthService {
 
   Future<void> signOut() async {
     final user = firebaseAuth.currentUser;
+    await firebaseAuth.signOut();
 
     if (user != null) {
       await _firestore.collection('users').doc(user.uid).set({
@@ -183,7 +184,9 @@ class AuthService {
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'credential-already-in-use') {
-        debugPrint("Esta cuenta de Google ya está vinculada (lo cual es correcto).");
+        debugPrint(
+          "Esta cuenta de Google ya está vinculada (lo cual es correcto).",
+        );
 
         if (googleUser != null && googleAuth != null) {
           debugPrint(

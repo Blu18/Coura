@@ -1,5 +1,4 @@
 import 'package:coura_app/screens/login_screen.dart';
-import 'package:coura_app/screens/pending_task_screen.dart';
 import 'package:coura_app/screens/register_activity.dart';
 import 'package:coura_app/screens/sync_assignments.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
@@ -16,6 +15,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  
+  final User user = FirebaseAuth.instance.currentUser!;
   @override
   void initState() {
     super.initState();
@@ -24,8 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final User? user = FirebaseAuth.instance.currentUser;
-
+    
     void popPage() {
       Navigator.pop(context);
     }
@@ -45,11 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Página de Inicio'),
+        backgroundColor: AppColors.lapizlazuli,
+        centerTitle: true,
+        title: Text('Pantalla de Inicio', style: CTextStyle.headlineLarge.copyWith(color: Colors.white)),
         actions: [
           // Botón para cerrar sesión
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white,),
             onPressed: () {
               logout();
             },
@@ -94,46 +96,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(8.0),
                 ),
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => PendingTaskScreen()),
-                );
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle_outline, color: Colors.white),
-                  SizedBox(width: 5),
-                  Text(
-                    "Visualizar tareas",
-                    style: TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.verdigris,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
               onPressed: () async {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SyncAssignments()),
                 );
               },
-              child: Text('Sincronizar con Classroom', style: CTextStyle.bodyMediuimbold.copyWith(color: Colors.white)),
+              child: Text(
+                'Sincronizar con Classroom',
+                style: CTextStyle.bodyMediuimbold.copyWith(color: Colors.white),
+              ),
             ),
+
             Text('¡Bienvenido!'),
             const SizedBox(height: 10),
             // Muestra el nombre del usuario si está disponible
             Text(
-              user?.displayName ?? 'Usuario',
+              user.displayName ?? 'Usuario',
               style: CTextStyle.bodyMediuimbold.copyWith(color: Colors.black),
             ),
           ],

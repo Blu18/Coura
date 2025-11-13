@@ -1,5 +1,5 @@
 import 'package:coura_app/screens/app_loading_screen.dart';
-import 'package:coura_app/screens/home_screen.dart';
+import 'package:coura_app/screens/menu_screen.dart';
 import 'package:coura_app/services/auth_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:coura_app/screens/login_screen.dart';
@@ -44,7 +44,7 @@ class _AuthLayoutState extends State<AuthLayout> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               widget = AppLoadingPage();
             } else if (snapshot.hasData) {
-              widget = const HomeScreen();
+              widget = const MenuScreen();
             } else {
               widget = const LoginScreen();
             }

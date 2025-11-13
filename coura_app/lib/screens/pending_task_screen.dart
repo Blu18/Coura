@@ -77,24 +77,6 @@ class _PendingTaskScreen extends State<PendingTaskScreen> {
             },
           );
         },
-      ), // Este será el widget principal del cuerpo
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.task_alt), label: 'Tareas'),
-          BottomNavigationBarItem(icon: Icon(Icons.data_usage), label: 'Datos'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Recordar',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.exit_to_app),
-            label: 'Salir',
-          ),
-        ],
-        // Estilos adicionales para que se vea como en la imagen
-        type: BottomNavigationBarType.fixed, // Mantiene el layout fijo
-        selectedItemColor: Colors.blue[800],
-        unselectedItemColor: Colors.grey,
       ),
     );
   }
