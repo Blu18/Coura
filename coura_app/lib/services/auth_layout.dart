@@ -21,37 +21,52 @@ class _AuthLayoutState extends State<AuthLayout> {
   }
 
   Future<void> _checkAndClearSession() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    
-    if (currentUser != null) {
-      final shouldKeep = await authService.value.shouldKeepSession();
-      
-      if (!shouldKeep) {
-        await authService.value.signOut();
-      }
+  print("🔹 Revisando sesión actual...");
+  final currentUser = FirebaseAuth.instance.currentUser;
+  
+  if (currentUser != null) {
+    print("🔹 Usuario detectado: ${currentUser.email}");
+    final shouldKeep = await authService.value.shouldKeepSession();
+    print("🔹 shouldKeepSession = $shouldKeep");
+
+    if (!shouldKeep) {
+      print("🔹 Cerrando sesión...");
+      await authService.value.signOut();
+      print("🔹 Sesión cerrada.");
     }
+  } else {
+    print("🔹 No hay usuario autenticado.");
   }
+}
+
 
   @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: authService,
-      builder: (context, authService, child) {
-        return StreamBuilder(
-          stream: authService.authStateChanges,
-          builder: (context, snapshot) {
-            Widget widget;
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              widget = AppLoadingPage();
-            } else if (snapshot.hasData) {
-              widget = const MenuScreen();
-            } else {
-              widget = const LoginScreen();
-            }
-            return widget;
-          },
-        );
-      },
-    );
-  }
+Widget build(BuildContext context) {
+  return ValueListenableBuilder(
+    valueListenable: authService,
+    builder: (context, value, child) {
+      return StreamBuilder<User?>(
+        stream: value.authStateChanges,
+        builder: (context, snapshot) {
+          // Depuración del flujo de autenticación
+          debugPrint('Stream connectionState: ${snapshot.connectionState}');
+          debugPrint('Stream hasData: ${snapshot.hasData}');
+          debugPrint('Stream error: ${snapshot.error}');
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            debugPrint('Mostrando AppLoadingPage');
+            return const AppLoadingPage();
+          } else if (snapshot.hasData) {
+            debugPrint('Mostrando MenuScreen');
+            return const MenuScreen();
+          } else {
+            debugPrint('Mostrando LoginScreen');
+            return const LoginScreen();
+          }
+        },
+      );
+    },
+  );
+}
+
 }

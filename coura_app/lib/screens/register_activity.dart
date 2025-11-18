@@ -85,6 +85,10 @@ class _RegisterActivityState extends State<RegisterActivity> {
           .collection('assignments')
           .add(datosTarea);
 
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {'total_assignments': FieldValue.increment(1)},
+      );
+
       // 6. Mostrar mensaje de éxito y navegar hacia atrás
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('¡Tarea guardada con éxito!')),

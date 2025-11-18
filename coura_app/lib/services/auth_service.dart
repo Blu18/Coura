@@ -76,14 +76,6 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    final user = firebaseAuth.currentUser;
-    await firebaseAuth.signOut();
-
-    if (user != null) {
-      await _firestore.collection('users').doc(user.uid).set({
-        'rememberMe': false,
-      }, SetOptions(merge: true));
-    }
 
     await firebaseAuth.signOut();
   }

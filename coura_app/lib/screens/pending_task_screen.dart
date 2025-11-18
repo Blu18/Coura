@@ -30,14 +30,13 @@ class _PendingTaskScreen extends State<PendingTaskScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ahora = DateTime.now().toUtc();
+    final dosMesesAtras = DateTime.utc(ahora.year, ahora.month - 3, ahora.day);
+
+    final formato = DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    final fechaLimiteStr = formato.format(dosMesesAtras);
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Mis Tareas Pendientes",
-          style: CTextStyle.headlineLarge.copyWith(color: Colors.white),
-        ),
-        backgroundColor: AppColors.lapizlazuli,
-      ),
       backgroundColor: Colors.white,
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -45,21 +44,48 @@ class _PendingTaskScreen extends State<PendingTaskScreen> {
             .doc(FirebaseAuth.instance.currentUser!.uid)
             .collection('assignments')
             .where('completada', isEqualTo: false)
-            .orderBy(
-              'fechaLimite',
-              descending: false,
-            ) // Opcional: ordenar tareas
+            .orderBy('fechaLimite', descending: false)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+
+          if (!snapshot.hasData) {
+            return const Center(child: Text("No tienes tareas pendientes."));
+          }
+
+          // Filtrar documentos en el cliente
+          var documentosFiltrados = snapshot.data!.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final classroomData =
+                data['_classroom_data'] as Map<String, dynamic>?;
+
+            // Si no tiene classroomId, incluirlo (tarea creada manualmente)
+            if (data['classroomId'] == null) return true;
+
+            // Si tiene _classroom_data, verificar las fechas
+            if (classroomData != null) {
+              final creationTime = classroomData['creationTime'] as String?;
+              final updateTime = classroomData['updateTime'] as String?;
+
+              return (creationTime != null &&
+                      creationTime.compareTo(fechaLimiteStr) >= 0) ||
+                  (updateTime != null &&
+                      updateTime.compareTo(fechaLimiteStr) >= 0);
+            }
+
+            // Si tiene classroomId pero no tiene _classroom_data, no incluirlo
+            return false;
+          }).toList();
+
+          // Verificar si hay documentos después del filtrado
+          if (documentosFiltrados.isEmpty) {
             return const Center(child: Text("No tienes tareas pendientes."));
           }
 
           // Procesas y agrupas las tareas
-          var tareasAgrupadas = _agruparTareasPorMateria(snapshot.data!.docs);
+          var tareasAgrupadas = _agruparTareasPorMateria(documentosFiltrados);
           var materias = tareasAgrupadas.keys.toList();
 
           // Y aquí retornas el ListView que construye la interfaz
@@ -164,7 +190,7 @@ class TareaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rawFecha = tarea['fechaLimite'];
     DateTime? fechaLimite;
-    
+
     // Primero convertir la fecha
     if (rawFecha != null) {
       fechaLimite = (rawFecha as Timestamp).toDate();
@@ -173,7 +199,7 @@ class TareaCard extends StatelessWidget {
     // Luego calcular días restantes y estado
     int? diasRestantes;
     String? estado;
-    
+
     if (fechaLimite != null) {
       diasRestantes = fechaLimite.difference(DateTime.now()).inDays;
       estado = getEstadoFecha(diasRestantes);
@@ -246,8 +272,8 @@ class TareaCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: estado == "Vencida" 
-                    ? Colors.red.shade100 
+                color: estado == "Vencida"
+                    ? Colors.red.shade100
                     : Colors.orange.shade100,
                 borderRadius: BorderRadius.circular(8),
               ),

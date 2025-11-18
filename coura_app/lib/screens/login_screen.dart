@@ -1,9 +1,8 @@
-import 'package:coura_app/screens/home_screen.dart';
+import 'package:coura_app/screens/menu_screen.dart';
 import 'package:coura_app/screens/register_screen.dart';
 import 'package:coura_app/services/auth_service.dart';
 import 'package:coura_app/utils/custom/custom_text_field.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
-import 'package:coura_app/utils/styles/app_images.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -30,55 +29,55 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void signIn() async {
-  try {
-    await authService.value.signIn(
-      email: correocontroller.text,
-      password: contracontroller.text,
-      rememberMe: _isChecked,
-    );
-    
-    // Verificar que el widget esté montado antes de usar context
-    if (!mounted) return;
-    
-    Navigator.pushReplacement(
-      context, 
-      MaterialPageRoute(builder: (context) => HomeScreen())
-    );
-  } on FirebaseAuthException catch (e) {
-    String translatedError = "Ocurrio un error";
-    switch (e.code) {
-      case 'user-not-found':
-        translatedError = "Usuario no encontrado";
-        break;
-      case 'wrong-password':
-        translatedError = "La contraseña es incorrecta";
-        break;
-      case 'invalid-email':
-        translatedError = "Correo electrónico no es válido.";
-        break;
-      case 'user-disabled':
-        translatedError = "Este usuario ha sido deshabilitado.";
-        break;
-      case 'too-many-requests':
-        translatedError =
-            "Se han bloqueado las solicitudes por actividad inusual. Intenta más tarde.";
-        break;
-      case 'network-request-failed':
-        translatedError = "Error de red. Revisa tu conexión a internet.";
-        break;
-      default:
-        translatedError =
-            "Error al iniciar sesión. Verifica tus credenciales.";
-        print('Error no manejado: ${e.code}');
-    }
+    try {
+      await authService.value.signIn(
+        email: correocontroller.text,
+        password: contracontroller.text,
+        rememberMe: _isChecked,
+      );
 
-    if (!mounted) return;
-    
-    setState(() {
-      errorMessage = translatedError;
-    });
+      // Verificar que el widget esté montado antes de usar context
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MenuScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String translatedError = "Ocurrio un error";
+      switch (e.code) {
+        case 'user-not-found':
+          translatedError = "Usuario no encontrado";
+          break;
+        case 'wrong-password':
+          translatedError = "La contraseña es incorrecta";
+          break;
+        case 'invalid-email':
+          translatedError = "Correo electrónico no es válido.";
+          break;
+        case 'user-disabled':
+          translatedError = "Este usuario ha sido deshabilitado.";
+          break;
+        case 'too-many-requests':
+          translatedError =
+              "Se han bloqueado las solicitudes por actividad inusual. Intenta más tarde.";
+          break;
+        case 'network-request-failed':
+          translatedError = "Error de red. Revisa tu conexión a internet.";
+          break;
+        default:
+          translatedError =
+              "Error al iniciar sesión. Verifica tus credenciales.";
+          print('Error no manejado: ${e.code}');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = translatedError;
+      });
+    }
   }
-}
 
   void popPage() {
     Navigator.pop(context);
@@ -98,10 +97,10 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(height: 35),
+            const SizedBox(height: 35),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [Image.asset(CAppImages.applogo, scale: 1.5)],
+              //children: [Image.asset(CAppImages.applogo, scale: 1.5, cacheWidth: 600,)],
             ),
 
             Text(
@@ -123,10 +122,10 @@ class _LoginScreenState extends State<LoginScreen> {
               isThisPassword: true,
             ),
 
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(
               children: [
-                SizedBox(width: 25),
+                const SizedBox(width: 25),
                 Row(
                   children: [
                     CupertinoCheckbox(
@@ -138,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
 
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Column(
                       children: [
                         Text("Mantener sesión", style: CTextStyle.bodySmall),
@@ -148,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
 
-                SizedBox(width: 100),
+                const SizedBox(width: 100),
                 Column(
                   children: [
                     Text(
@@ -168,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
 
-            SizedBox(height: 1),
+            const SizedBox(height: 1),
             Text(
               errorMessage,
               style: CTextStyle.bodyMedium.copyWith(color: Colors.red),

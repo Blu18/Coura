@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:coura_app/services/gemini_service.dart';
+import 'package:coura_app/utils/animations/app_animations.dart';
+import 'package:coura_app/utils/animations/card_animation.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
-import 'package:coura_app/utils/styles/text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -71,11 +73,14 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
   bool _cargando = false;
   bool _botonHabilitado = true;
   final ScrollController _scrollController = ScrollController();
+  int _ultimoContadorTareas = 0;
+  StreamSubscription<DocumentSnapshot>? _userSubscription;
+  bool _inicializado = false;
+  late Future<List<String>> _combinedFutures;
 
   @override
   void initState() {
     super.initState();
-
     if (widget.userId == null || widget.userId!.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pop(context);
@@ -87,21 +92,136 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
     }
 
     _geminiService = GeminiPlanificadorService(widget.geminiApiKey);
-    _verificarEstadoBoton();
+    _combinedFutures = Future.wait<String>([
+      _geminiService.generarMotivacion(),
+      _geminiService.generarDato(widget.userId!),
+    ]);
+    _inicializar();
+  }
+
+  Future<void> _inicializar() async {
+    await _verificarEstadoBoton();
+    _escucharCambiosEnContador();
+    _inicializado = true; // ← Marcar como inicializado
+    debugPrint('✅ Inicialización completada');
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _userSubscription?.cancel();
     super.dispose();
   }
 
+  void _escucharCambiosEnContador() {
+    debugPrint(
+      '🎧 Iniciando listener del contador para usuario: ${widget.userId}',
+    );
+
+    _userSubscription = _firestore
+        .collection('users')
+        .doc(widget.userId)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            debugPrint('📡 Snapshot recibido - exists: ${snapshot.exists}');
+
+            if (snapshot.exists) {
+              final data = snapshot.data();
+              final nuevoContador = data?['total_assignments'] ?? 0;
+
+              debugPrint('📊 Valores:');
+              debugPrint('   - Contador anterior: $_ultimoContadorTareas');
+              debugPrint('   - Contador nuevo: $nuevoContador');
+              debugPrint('   - Botón habilitado: $_botonHabilitado');
+              debugPrint('   - Inicializado: $_inicializado');
+
+              // Solo habilitar si ya pasó la inicialización y el contador aumentó
+              if (_inicializado && nuevoContador > _ultimoContadorTareas) {
+                debugPrint(
+                  '✅ Contador AUMENTÓ después de inicialización - Habilitando botón',
+                );
+                setState(() {
+                  _botonHabilitado = true;
+                });
+              } else if (!_inicializado) {
+                debugPrint('⏳ Aún inicializando, ignorando cambio');
+              } else if (nuevoContador == _ultimoContadorTareas) {
+                debugPrint('➡️  Contador sin cambios');
+              } else {
+                debugPrint('⬇️  Contador disminuyó (raro)');
+              }
+
+              _ultimoContadorTareas = nuevoContador;
+            } else {
+              debugPrint('⚠️  Documento del usuario no existe');
+            }
+          },
+          onError: (error) {
+            debugPrint('❌ Error en listener: $error');
+          },
+        );
+  }
+
   Future<void> _verificarEstadoBoton() async {
+  try {
+    debugPrint('🔍 Verificando estado inicial del botón...');
+
+    // PRIMERO: Obtener el contador actual del usuario SIEMPRE
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(widget.userId)
+        .get();
+
+    int contadorActualUsuario = 0;
+    if (userDoc.exists) {
+      final data = userDoc.data();
+      contadorActualUsuario = data?['total_assignments'] ?? 0;
+      debugPrint('📊 Contador actual del usuario: $contadorActualUsuario');
+    }
+
+    // SEGUNDO: Verificar si ya existe un plan hoy
     final existePlan = await _geminiService.existePlanHoy(widget.userId!);
+    debugPrint('📅 ¿Existe plan hoy? $existePlan');
+
+    if (existePlan) {
+      // Si existe un plan, obtener el contador que tenía cuando se generó
+      final planDoc = await _firestore
+          .collection('users')
+          .doc(widget.userId)
+          .collection('planes_diarios')
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (planDoc.docs.isNotEmpty) {
+        final planData = planDoc.docs.first.data();
+        // Usar el contador guardado en el plan, o como fallback el contador actual (NO cero)
+        _ultimoContadorTareas = planData['contador_tareas_al_generar'] ?? contadorActualUsuario;
+        debugPrint(
+          '📊 Contador cuando se generó el plan: $_ultimoContadorTareas',
+        );
+      } else {
+        // Si no hay documento de plan, usar el contador actual
+        _ultimoContadorTareas = contadorActualUsuario;
+        debugPrint('📊 No se encontró doc del plan, usando contador actual: $_ultimoContadorTareas');
+      }
+    } else {
+      // Si no existe plan, usar el contador actual
+      _ultimoContadorTareas = contadorActualUsuario;
+      debugPrint('📊 Sin plan existente, contador inicial: $_ultimoContadorTareas');
+    }
+
     setState(() {
       _botonHabilitado = !existePlan;
     });
+
+    debugPrint('🔘 Botón habilitado: $_botonHabilitado');
+    debugPrint('📌 _ultimoContadorTareas final: $_ultimoContadorTareas');
+  } catch (e) {
+    debugPrint('❌ Error verificando estado del botón: $e');
   }
+}
 
   Future<void> _guardarMensaje(
     String texto, {
@@ -132,50 +252,157 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
         }
       });
     } catch (e) {
-      print('Error guardando mensaje: $e');
+      debugPrint('Error guardando mensaje: $e');
     }
   }
 
   Future<void> _generarPlan() async {
+    debugPrint('🚀 Generando/Actualizando plan...');
+
     setState(() {
       _cargando = true;
     });
 
-    await _guardarMensaje(
-      '🤖 Generar mi plan de estudio del día',
-      esUsuario: true,
-    );
+    // Verificar si ya existe un plan hoy
+    final existePlanPrevio = await _geminiService.existePlanHoy(widget.userId!);
+
+    if (existePlanPrevio) {
+      await _guardarMensaje(
+        '🔄 Actualizar plan con nuevas tareas',
+        esUsuario: true,
+      );
+      debugPrint('🔄 Existe plan previo, se eliminará y creará uno nuevo');
+
+      // Eliminar el plan anterior
+      try {
+        final planDocs = await _firestore
+            .collection('users')
+            .doc(widget.userId)
+            .collection('planes_diarios')
+            .where(
+              'fecha',
+              isEqualTo: DateTime.now().toIso8601String().split('T')[0],
+            )
+            .get();
+
+        final batch = _firestore.batch();
+        for (var doc in planDocs.docs) {
+          batch.delete(doc.reference);
+          debugPrint('🗑️ Eliminando plan anterior: ${doc.id}');
+        }
+        await batch.commit();
+
+        // También eliminar mensajes del plan anterior del chat
+        final mensajesPlan = await _firestore
+            .collection('users')
+            .doc(widget.userId)
+            .collection('chat_mensajes')
+            .where('tipo', isEqualTo: 'plan')
+            .get();
+
+        final batchMensajes = _firestore.batch();
+        for (var doc in mensajesPlan.docs) {
+          batchMensajes.delete(doc.reference);
+        }
+        await batchMensajes.commit();
+        debugPrint('🗑️ Mensajes de plan anterior eliminados');
+      } catch (e) {
+        debugPrint('⚠️ Error eliminando plan anterior: $e');
+      }
+    } else {
+      await _guardarMensaje(
+        '🤖 Generar mi plan de estudio del día',
+        esUsuario: true,
+      );
+    }
 
     try {
-      final resultado = await _geminiService.generarPlanDiario(widget.userId!);
-
-      if (resultado['exito'] == true) {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(widget.userId)
+          .collection("assignments")
+          .get();
+      final assignmentsExist = snapshot.size > 0;
+      if (!assignmentsExist) {
+        await _guardarMensaje("⚠️No tienes tareas creada!", esUsuario: false);
         await _guardarMensaje(
-          '✅ Plan generado exitosamente\n'
-          '📊 Total: ${resultado['totalTareas']} tareas\n'
-          '⏱️ Tiempo estimado: ${resultado['horasTotales'].toStringAsFixed(1)} horas\n\n'
-          '${resultado['mensaje']}',
+          "Crea una nueva tarea o sincroniza con Classroom⚙️",
           esUsuario: false,
         );
-
-        await _guardarMensaje(
-          'Plan interactivo del día',
-          esUsuario: false,
-          tipo: 'plan',
-          dataPlan: resultado,
-        );
-
-        setState(() {
-          _botonHabilitado = false;
-        });
       } else {
-        await _guardarMensaje(
-          '❌ ${resultado['error'] ?? 'Error desconocido'}',
-          esUsuario: false,
+        // Obtener el contador ANTES de generar el plan
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(widget.userId)
+            .get();
+
+        int contadorActual = 0;
+        if (userDoc.exists) {
+          final data = userDoc.data();
+          contadorActual = data?['total_assignments'] ?? 0;
+        }
+        debugPrint('📊 Contador al momento de generar: $contadorActual');
+
+        final resultado = await _geminiService.generarPlanDiario(
+          widget.userId!,
         );
+
+        if (resultado['exito'] == true) {
+          if (existePlanPrevio) {
+            await _guardarMensaje(
+              '✅ Plan actualizado exitosamente\n'
+              '📊 Total: ${resultado['totalTareas']} tareas\n'
+              '⏱️ Tiempo estimado: ${resultado['horasTotales'].toStringAsFixed(1)} horas\n\n'
+              '${resultado['mensaje']}',
+              esUsuario: false,
+            );
+          } else {
+            await _guardarMensaje(
+              '✅ Plan generado exitosamente\n'
+              '📊 Total: ${resultado['totalTareas']} tareas\n'
+              '⏱️ Tiempo estimado: ${resultado['horasTotales'].toStringAsFixed(1)} horas\n\n'
+              '${resultado['mensaje']}',
+              esUsuario: false,
+            );
+          }
+
+          await _guardarMensaje(
+            'Plan interactivo del día',
+            esUsuario: false,
+            tipo: 'plan',
+            dataPlan: resultado,
+          );
+
+          // Guardar el contador en el documento del plan
+          final planId = resultado['planId'];
+          if (planId != null) {
+            await _firestore
+                .collection('users')
+                .doc(widget.userId)
+                .collection('planes_diarios')
+                .doc(planId)
+                .update({'contador_tareas_al_generar': contadorActual});
+            debugPrint('💾 Contador guardado en el plan: $contadorActual');
+          }
+
+          // Actualizar el contador local
+          _ultimoContadorTareas = contadorActual;
+          debugPrint('📊 Contador local actualizado a: $_ultimoContadorTareas');
+
+          debugPrint('🔒 Deshabilitando botón');
+          setState(() {
+            _botonHabilitado = false;
+          });
+        } else {
+          await _guardarMensaje(
+            '❌ ${resultado['error'] ?? 'Error desconocido'}',
+            esUsuario: false,
+          );
+        }
       }
     } catch (e) {
       await _guardarMensaje('❌ Error: ${e.toString()}', esUsuario: false);
+      debugPrint('❌ Error en _generarPlan: $e');
     } finally {
       setState(() {
         _cargando = false;
@@ -183,223 +410,334 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
     }
   }
 
-  Future<void> _limpiarChat() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Limpiar conversación'),
-        content: Text(
-          '¿Estás seguro de que deseas eliminar todos los mensajes?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // Contenido principal
+          Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                      .collection('users')
+                      .doc(widget.userId)
+                      .collection('chat_mensajes')
+                      .orderBy('timestamp', descending: false)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.cerulean,
+                        ),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error cargando mensajes'));
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 40,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "Hola, estoy listo",
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color.fromARGB(255, 2, 54, 10),
+                                ),
+                              ),
+                              Text(
+                                "para organizar tu día!",
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color.fromARGB(255, 2, 54, 10),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              AnimatedMotivationalCard(
+                                future: _geminiService.generarMotivacion(),
+                                backgroundColor: Color.fromARGB(
+                                  255,
+                                  229,
+                                  245,
+                                  235,
+                                ),
+                                loadingColor: Color.fromARGB(255, 2, 54, 10),
+                                fontSize: 16,
+                              ),
+                              SizedBox(height: 16),
+                              AnimatedMotivationalCard(
+                                future: _geminiService.generarDato(
+                                  widget.userId!,
+                                ),
+                                backgroundColor: Color.fromARGB(
+                                  255,
+                                  229,
+                                  245,
+                                  235,
+                                ),
+                                loadingColor: Color.fromARGB(255, 2, 54, 10),
+                                fontSize: 16,
+                              ),
+                              SizedBox(height: 16),
+                              FutureBuilder<List<String>>(
+                                future: _combinedFutures,
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                          ConnectionState.done &&
+                                      snapshot.hasData) {
+                                    return AnimatedCard(
+                                      text:
+                                          "Ahora, es momento de trabajar en tus tareas pendientes!✍️ ",
+                                      backgroundColor: Color.fromARGB(
+                                        255,
+                                        229,
+                                        245,
+                                        235,
+                                      ),
+                                      fontSize: 16,
+                                    );
+                                  }
+                                  return SizedBox.shrink();
+                                },
+                              ),
+                              SizedBox(height: 80), // Espacio para el botón
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    final mensajes = snapshot.data!.docs
+                        .map(
+                          (doc) => MensajeChat.fromFirestore(
+                            doc.id,
+                            doc.data() as Map<String, dynamic>,
+                          ),
+                        )
+                        .toList();
+
+                    return ListView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        top: 16,
+                        bottom: 100, // Espacio para el botón inferior
+                      ),
+                      itemCount: mensajes.length,
+                      itemBuilder: (context, index) {
+                        final mensaje = mensajes[index];
+
+                        if (mensaje.tipo == 'plan' &&
+                            mensaje.dataPlan != null) {
+                          return PlanDiarioWidget(
+                            planData: mensaje.dataPlan!,
+                            userId: widget.userId!,
+                            geminiService: _geminiService,
+                          );
+                        }
+
+                        return ChatMessage(
+                          texto: mensaje.texto,
+                          esUsuario: mensaje.esUsuario,
+                          timestamp: mensaje.timestamp,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              if (_cargando)
+                Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: AppColors.cerulean),
+                      SizedBox(width: 16),
+                      Text('Procesando...'),
+                    ],
+                  ),
+                ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Eliminar', style: TextStyle(color: Colors.red)),
+
+          // Botón animado que se mueve del centro hacia abajo
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('users')
+                .doc(widget.userId)
+                .collection('chat_mensajes')
+                .snapshots(),
+            builder: (context, chatSnapshot) {
+              // Determinar si hay mensajes en el chat
+              final tieneMensajes =
+                  chatSnapshot.hasData && chatSnapshot.data!.docs.isNotEmpty;
+
+              return StreamBuilder<DocumentSnapshot>(
+                stream: _firestore
+                    .collection('users')
+                    .doc(widget.userId)
+                    .snapshots(),
+                builder: (context, userSnapshot) {
+                  final data =
+                      userSnapshot.data?.data() as Map<String, dynamic>?;
+                  final contadorActual = data?['total_assignments'] ?? 0;
+                  final hayNuevasTareas =
+                      contadorActual > _ultimoContadorTareas;
+
+                  // Si hay mensajes, siempre mostrar el botón (abajo)
+                  // Si no hay mensajes, mostrar solo cuando los futures estén listos (centro)
+                  return FutureBuilder<List<String>>(
+                    future: _combinedFutures,
+                    builder: (context, futureSnapshot) {
+                      // Mostrar el botón si:
+                      // 1. Hay mensajes (ya se inició conversación) O
+                      // 2. No hay mensajes pero los futures están completos
+                      final mostrarBoton =
+                          tieneMensajes ||
+                          (futureSnapshot.connectionState ==
+                              ConnectionState.done);
+
+                      if (!mostrarBoton) {
+                        return SizedBox.shrink();
+                      }
+
+                      return AnimatedPositioned(
+                        duration: Duration(milliseconds: 600),
+                        curve: Curves.easeInOutCubic,
+                        // Posición vertical: centro o abajo según si hay mensajes
+                        bottom: tieneMensajes
+                            ? 16
+                            : MediaQuery.of(context).size.height * 0.175,
+                        left: 16,
+                        right: 16,
+                        child: _buildButtonContainer(
+                          hayNuevasTareas,
+                          contadorActual,
+                          tieneMensajes,
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
           ),
         ],
       ),
     );
-
-    if (confirmar == true) {
-      try {
-        final mensajes = await _firestore
-            .collection('users')
-            .doc(widget.userId)
-            .collection('chat_mensajes')
-            .get();
-
-        final batch = _firestore.batch();
-        for (var doc in mensajes.docs) {
-          batch.delete(doc.reference);
-        }
-        await batch.commit();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Conversación eliminada')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al eliminar mensajes')),
-        );
-      }
-    }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Planificar tareas',
-          style: CTextStyle.headlineLarge.copyWith(color: Colors.white),
-        ),
-        backgroundColor: AppColors.lapizlazuli,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.delete_outline),
-            onPressed: _limpiarChat,
-            tooltip: 'Limpiar conversación',
-          ),
-        ],
-      ),
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('users')
-                  .doc(widget.userId)
-                  .collection('chat_mensajes')
-                  .orderBy('timestamp', descending: false)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(color: AppColors.cerulean),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error cargando mensajes'));
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: Color.fromARGB(255, 229, 245, 235),
-                              child: Icon(Icons.smart_toy, color: AppColors.keppel, size: 20),
-                            ),
-                            SizedBox(width: 8),
-                            Flexible(
-                              child: Container(
-                                padding: EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Color.fromARGB(255, 229, 245, 235),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '¡Hola! Estoy listo para organizar tu día.',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),                        
-                      ],
-                    ),
-                  );
-                }
-
-                final mensajes = snapshot.data!.docs
-                    .map((doc) => MensajeChat.fromFirestore(
-                          doc.id,
-                          doc.data() as Map<String, dynamic>,
-                        ))
-                    .toList();
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: EdgeInsets.all(16),
-                  itemCount: mensajes.length,
-                  itemBuilder: (context, index) {
-                    final mensaje = mensajes[index];
-
-                    if (mensaje.tipo == 'plan' && mensaje.dataPlan != null) {
-                      return PlanDiarioWidget(
-                        planData: mensaje.dataPlan!,
-                        userId: widget.userId!,
-                        geminiService: _geminiService,
-                      );
-                    }
-
-                    return ChatMessage(
-                      texto: mensaje.texto,
-                      esUsuario: mensaje.esUsuario,
-                      timestamp: mensaje.timestamp,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          if (_cargando)
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppColors.cerulean),
-                  SizedBox(width: 16),
-                  Text('Procesando...'),
-                ],
-              ),
-            ),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              boxShadow: [
+  Widget _buildButtonContainer(
+    bool hayNuevasTareas,
+    int contadorActual,
+    bool tieneMensajes,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: tieneMensajes ? Colors.grey[100] : Colors.transparent,
+        boxShadow: tieneMensajes
+            ? [
                 BoxShadow(
                   color: Colors.black12,
                   blurRadius: 4,
                   offset: Offset(0, -2),
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: (_cargando || !_botonHabilitado) ? null : _generarPlan,
-                        icon: Icon(Icons.remove_red_eye_outlined),
-                        label: Text('Vizualizar Plan'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.lightergreen,
-                          foregroundColor: Colors.black,
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (!_botonHabilitado)
-                  Padding(
-                    padding: EdgeInsets.only(top: 8),
+              ]
+            : null,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Alerta de nuevas tareas (solo si hay mensajes)
+          if (tieneMensajes && hayNuevasTareas && !_botonHabilitado)
+            Container(
+              margin: EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[300]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      '✓ Ya generaste un plan hoy.',
+                      '¡Tienes ${contadorActual - _ultimoContadorTareas} tarea${(contadorActual - _ultimoContadorTareas) > 1 ? 's' : ''} nueva${(contadorActual - _ultimoContadorTareas) > 1 ? 's' : ''}! Actualiza tu plan.',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange[700],
-                        fontStyle: FontStyle.italic,
+                        fontSize: 13,
+                        color: Colors.orange[900],
+                        fontWeight: FontWeight.w500,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
-              ],
+                ],
+              ),
+            ),
+
+          // Botón principal
+          ElevatedButton.icon(
+            onPressed:
+                (_cargando ||
+                    (tieneMensajes && !_botonHabilitado && !hayNuevasTareas))
+                ? null
+                : _generarPlan,
+            icon: Icon(
+              (tieneMensajes && hayNuevasTareas && !_botonHabilitado)
+                  ? Icons.refresh
+                  : Icons.remove_red_eye_outlined,
+            ),
+            label: Text(
+              (tieneMensajes && hayNuevasTareas && !_botonHabilitado)
+                  ? 'Actualizar Plan'
+                  : 'Visualizar Plan',
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.lightergreen,
+              foregroundColor: Colors.black,
+              padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              minimumSize: Size(double.infinity, 50),
             ),
           ),
+
+          // Mensaje de confirmación (solo si hay mensajes)
+          if (tieneMensajes && !_botonHabilitado && !hayNuevasTareas)
+            Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                '✓ Ya generaste un plan hoy.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.orange[700],
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
         ],
       ),
     );
@@ -423,7 +761,9 @@ class ChatMessage extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(bottom: 16),
       child: Row(
-        mainAxisAlignment: esUsuario ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: esUsuario
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!esUsuario) ...[
@@ -437,7 +777,9 @@ class ChatMessage extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: esUsuario ? AppColors.cerulean : Color.fromARGB(255, 229, 245, 235),
+                color: esUsuario
+                    ? AppColors.cerulean
+                    : Color.fromARGB(255, 229, 245, 235),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -543,7 +885,11 @@ class _PlanDiarioWidgetState extends State<PlanDiarioWidget> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, color: AppColors.keppel, size: 16),
+                      Icon(
+                        Icons.calendar_today,
+                        color: AppColors.keppel,
+                        size: 16,
+                      ),
                       SizedBox(width: 6),
                       Text(
                         'Plan del Día',
@@ -555,7 +901,10 @@ class _PlanDiarioWidgetState extends State<PlanDiarioWidget> {
                       ),
                       Spacer(),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.keppel.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
@@ -602,56 +951,70 @@ class _PlanDiarioWidgetState extends State<PlanDiarioWidget> {
                               ),
                             ),
                             SizedBox(height: 6),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: _getColorPrioridad(tarea.prioridad).withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    tarea.prioridad,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: _getColorPrioridad(tarea.prioridad),
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getColorPrioridad(
+                                  tarea.prioridad,
+                                ).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                tarea.prioridad,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: _getColorPrioridad(tarea.prioridad),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.access_time,
+                                  size: 14,
+                                  color: AppColors.cerulean,
+                                ),
+                                SizedBox(width: 2),
+                                Text(
+                                  'Tiempo estimado: ${tarea.horasEstimadas} horas',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.access_time, size: 14, color: AppColors.cerulean),
-                                    SizedBox(width: 2),
-                                    Text(
-                                      'Tiempo estimado: ${tarea.horasEstimadas} horas',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
+                              ],
+                            ),
+                            if (tarea.materia.isNotEmpty)
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
                                 ),
-                                if (tarea.materia.isNotEmpty)
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue[50],
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      tarea.materia,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.blue[700],
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue[50],
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  tarea.materia,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.blue[700],
+                                    fontWeight: FontWeight.w600,
                                   ),
-                            
+                                ),
+                              ),
+
                             if (!tarea.completada)
                               Theme(
-                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                data: Theme.of(
+                                  context,
+                                ).copyWith(dividerColor: Colors.transparent),
                                 child: ExpansionTile(
                                   tilePadding: EdgeInsets.zero,
                                   childrenPadding: EdgeInsets.only(top: 8),
@@ -677,7 +1040,10 @@ class _PlanDiarioWidgetState extends State<PlanDiarioWidget> {
                                       ),
                                       child: Text(
                                         tarea.motivacion,
-                                        style: TextStyle(fontSize: 12, color: Colors.black),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black,
+                                        ),
                                       ),
                                     ),
                                     if (tarea.pasosSugeridos.isNotEmpty) ...[
@@ -691,41 +1057,54 @@ class _PlanDiarioWidgetState extends State<PlanDiarioWidget> {
                                         ),
                                       ),
                                       SizedBox(height: 6),
-                                      ...tarea.pasosSugeridos.asMap().entries.map((entry) {
-                                        return Padding(
-                                          padding: EdgeInsets.only(bottom: 4, left: 4),
-                                          child: Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Container(
-                                                width: 16,
-                                                height: 16,
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.keppel.withOpacity(0.2),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Center(
-                                                  child: Text(
-                                                    '${entry.key + 1}',
-                                                    style: TextStyle(
-                                                      fontSize: 9,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: AppColors.keppel,
+                                      ...tarea.pasosSugeridos
+                                          .asMap()
+                                          .entries
+                                          .map((entry) {
+                                            return Padding(
+                                              padding: EdgeInsets.only(
+                                                bottom: 4,
+                                                left: 4,
+                                              ),
+                                              child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Container(
+                                                    width: 16,
+                                                    height: 16,
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.keppel
+                                                          .withOpacity(0.2),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Center(
+                                                      child: Text(
+                                                        '${entry.key + 1}',
+                                                        style: TextStyle(
+                                                          fontSize: 9,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              AppColors.keppel,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
+                                                  SizedBox(width: 6),
+                                                  Expanded(
+                                                    child: Text(
+                                                      entry.value,
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              SizedBox(width: 6),
-                                              Expanded(
-                                                child: Text(
-                                                  entry.value,
-                                                  style: TextStyle(fontSize: 11, color: Colors.black87),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      }),
+                                            );
+                                          }),
                                     ],
                                   ],
                                 ),

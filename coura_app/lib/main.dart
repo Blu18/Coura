@@ -46,7 +46,7 @@ class MainApp extends StatelessWidget {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "Coura",
-
+      showPerformanceOverlay: false,
       home: AuthLayout(),
     );
   }

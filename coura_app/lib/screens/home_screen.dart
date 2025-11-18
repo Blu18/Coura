@@ -1,4 +1,3 @@
-import 'package:coura_app/screens/login_screen.dart';
 import 'package:coura_app/screens/register_activity.dart';
 import 'package:coura_app/screens/sync_assignments.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
@@ -15,7 +14,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  
   final User user = FirebaseAuth.instance.currentUser!;
   @override
   void initState() {
@@ -25,39 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    
-    void popPage() {
-      Navigator.pop(context);
-    }
-
-    void logout() async {
-      try {
-        await authService.value.signOut();
-        popPage();
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      } on FirebaseAuthException catch (e) {
-        debugPrint(e.message);
-      }
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.lapizlazuli,
-        centerTitle: true,
-        title: Text('Pantalla de Inicio', style: CTextStyle.headlineLarge.copyWith(color: Colors.white)),
-        actions: [
-          // Botón para cerrar sesión
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white,),
-            onPressed: () {
-              logout();
-            },
-          ),
-        ],
-      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
