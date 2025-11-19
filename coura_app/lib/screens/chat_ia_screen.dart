@@ -224,12 +224,11 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
         debugPrint(
           '📊 Sin plan existente, contador inicial: $_ultimoContadorTareas',
         );
-      }
-
-      setState(() {
+        setState(() {
         _botonHabilitado = !existePlan;
         _botonAvanzarHabilitado = existePlan;
-      });
+        });
+      }
 
       debugPrint('🔘 Botón Crear Plan habilitado: $_botonHabilitado');
       debugPrint('🔘 Botón Avanzar habilitado: $_botonAvanzarHabilitado');
@@ -278,7 +277,7 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
             'tipo': tipo,
             'dataPlan': dataPlan,
           });
-          _debeHacerScroll = true;
+      _debeHacerScroll = true;
     } catch (e) {
       debugPrint('Error guardando mensaje: $e');
     }
@@ -516,13 +515,11 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
         );
 
         try {
-          await _firestore.collection('users').doc(widget.userId).set(
-            {
-              'planes_completados': FieldValue.increment(1),
-              'racha': FieldValue.increment(1),
-            },
-            SetOptions(merge: true),
-          );
+          await _firestore.collection('users').doc(widget.userId).set({
+            'planes_completados': FieldValue.increment(1),
+            'racha': FieldValue.increment(1),
+            'completado' : true,
+          }, SetOptions(merge: true));
 
           await _firestore
               .collection('users')
@@ -938,7 +935,7 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   iconAlignment: IconAlignment.end,
-                  onPressed: (_cargando || !_botonAvanzarHabilitado)
+                  onPressed: (_cargando || !_botonAvanzarHabilitado || _botonHabilitado)
                       ? null
                       : _avanzarTarea,
                   icon: Icon(Icons.arrow_forward),
