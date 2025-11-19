@@ -96,13 +96,13 @@ class _MenuScreen extends State<MenuScreen> {
         backgroundColor: AppColors.lapizlazuli,
         foregroundColor: Colors.white,
         centerTitle: true,
-        actions: [
+        /*actions: [
           IconButton(
             icon: Icon(Icons.delete_outline),
             onPressed: _limpiarChat,
             tooltip: 'Limpiar conversación',
           ),
-        ],
+        ],*/
       ),
       ),
       _ScreenConfig(
@@ -204,7 +204,7 @@ class _MenuScreen extends State<MenuScreen> {
               onTap: () => _onItemTapped(1),
             ),
             ListTile(
-              leading: Icon(Icons.home_rounded, color: Colors.white),
+              leading: Icon(Icons.person_rounded, color: Colors.white),
               title: Text(
                 'Perfil',
                 style: CTextStyle.tittleLarge.copyWith(color: Colors.white),
