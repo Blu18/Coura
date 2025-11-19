@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 
 class TareaPlanificacion {
+  final String id;
   final String nombre;
   final String descripcion;
   final DateTime? fechaLimite;
@@ -15,6 +16,7 @@ class TareaPlanificacion {
   final bool completada;
 
   TareaPlanificacion({
+    required this.id,
     required this.nombre,
     required this.descripcion,
     required this.fechaLimite,
@@ -24,7 +26,7 @@ class TareaPlanificacion {
     required this.completada,
   });
 
-  factory TareaPlanificacion.fromFirestore(Map<String, dynamic> data) {
+  factory TareaPlanificacion.fromFirestore(String docId, Map<String, dynamic> data) {
     DateTime? fechalimite;
     if (data['fechaLimite'] != null) {
       fechalimite = (data['fechaLimite'] as Timestamp).toDate();
@@ -33,6 +35,7 @@ class TareaPlanificacion {
     }
 
     return TareaPlanificacion(
+      id: docId, 
       nombre: data['nombre'] ?? '',
       descripcion: data['descripcion'] ?? '',
       fechaLimite: fechalimite,
@@ -44,7 +47,7 @@ class TareaPlanificacion {
   }
 }
 
-// Nueva clase para tareas individuales del plan
+// Clase para tareas individuales del plan
 class TareaPlanificada {
   final String nombreTarea;
   final String materia;
@@ -54,6 +57,7 @@ class TareaPlanificada {
   final String prioridad;
   final int orden;
   final bool completada;
+  final String assignmentId;
 
   TareaPlanificada({
     required this.nombreTarea,
@@ -63,6 +67,7 @@ class TareaPlanificada {
     required this.pasosSugeridos,
     required this.prioridad,
     required this.orden,
+    required this.assignmentId,
     this.completada = false,
   });
 
@@ -76,6 +81,7 @@ class TareaPlanificada {
       'prioridad': prioridad,
       'orden': orden,
       'completada': completada,
+      'assignmentId': assignmentId,
     };
   }
 
@@ -89,6 +95,7 @@ class TareaPlanificada {
       prioridad: data['prioridad'] ?? 'Media',
       orden: data['orden'] ?? 0,
       completada: data['completada'] ?? false,
+      assignmentId: data['assignmentId'] ?? '',
     );
   }
 
@@ -101,24 +108,23 @@ class TareaPlanificada {
       pasosSugeridos: List<String>.from(json['pasosSugeridos'] ?? []),
       prioridad: json['prioridad'] ?? 'Media',
       orden: json['orden'] ?? 0,
+      assignmentId: json['assignmentId'] ?? '', 
     );
   }
 }
 
-// Nueva clase para el plan diario mejorado
+// Clase para el plan diario
 class PlanDiario {
   final DateTime fechaCreacion;
   final int totalTareas;
   final double horasTotales;
   final String mensajeMotivacional;
-  final String planId;
 
   PlanDiario({
     required this.fechaCreacion,
     required this.totalTareas,
     required this.horasTotales,
     required this.mensajeMotivacional,
-    required this.planId,
   });
 
   Map<String, dynamic> toFirestore() {
@@ -127,7 +133,6 @@ class PlanDiario {
       'totalTareas': totalTareas,
       'horasTotales': horasTotales,
       'mensajeMotivacional': mensajeMotivacional,
-      'planId': planId,
     };
   }
 
@@ -137,7 +142,6 @@ class PlanDiario {
       totalTareas: data['totalTareas'] ?? 0,
       horasTotales: (data['horasTotales'] ?? 0).toDouble(),
       mensajeMotivacional: data['mensajeMotivacional'] ?? '',
-      planId: data['planId'] ?? '',
     );
   }
 }
@@ -156,75 +160,71 @@ class GeminiPlanificadorService {
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 2048,
-          responseMimeType: 'application/json', // Forzar respuesta JSON
+          responseMimeType: 'application/json',
         ),
       );
 
   // Obtener tareas pendientes del usuario
   Future<List<TareaPlanificacion>> obtenerTareasPendientes(
-  String userId,
-) async {
-  try {
-    final ahora = DateTime.now();
-    final dosMesesAtras = DateTime(ahora.year, ahora.month - 2, ahora.day);
-    final unaSemanaAtras = ahora.subtract(const Duration(days: 7));
+    String userId,
+  ) async {
+    try {
+      final ahora = DateTime.now();
+      final dosMesesAtras = DateTime(ahora.year, ahora.month - 2, ahora.day);
+      final unaSemanaAtras = ahora.subtract(const Duration(days: 7));
 
-    final fechaLimiteStr = dosMesesAtras.toIso8601String();
-    print('Fecha Límite enviada al query: $fechaLimiteStr');
-    
-    // Query simplificada sin filtros complejos
-    final tareasSnapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('assignments')
-        .where('completada', isEqualTo: false)
-        .get();
-    
-    // Filtrar en el cliente
-    final tareasFiltradas = tareasSnapshot.docs.where((doc) {
-      final data = doc.data();
-      final classroomData = data['_classroom_data'] as Map<String, dynamic>?;
-      
-      // Verificar fecha de vencimiento
-      final fechaLimite = data['fechaLimite'];
-      DateTime? fechaVencimiento;
-      
-      if (fechaLimite is Timestamp) {
-        fechaVencimiento = fechaLimite.toDate();
-      } else if (fechaLimite is String) {
-        fechaVencimiento = DateTime.tryParse(fechaLimite);
-      }
-      
-      // Excluir tareas vencidas hace más de una semana
-      if (fechaVencimiento != null && fechaVencimiento.isBefore(unaSemanaAtras)) {
+      final fechaLimiteStr = dosMesesAtras.toIso8601String();
+      print('Fecha Límite enviada al query: $fechaLimiteStr');
+
+      final tareasSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('assignments')
+          .where('completada', isEqualTo: false)
+          .get();
+
+      // Filtrar en el cliente
+      final tareasFiltradas = tareasSnapshot.docs.where((doc) {
+        final data = doc.data();
+        final classroomData = data['_classroom_data'] as Map<String, dynamic>?;
+
+        final fechaLimite = data['fechaLimite'];
+        DateTime? fechaVencimiento;
+
+        if (fechaLimite is Timestamp) {
+          fechaVencimiento = fechaLimite.toDate();
+        } else if (fechaLimite is String) {
+          fechaVencimiento = DateTime.tryParse(fechaLimite);
+        }
+
+        if (fechaVencimiento != null &&
+            fechaVencimiento.isBefore(unaSemanaAtras)) {
+          return false;
+        }
+
+        if (data['classroomId'] == null) return true;
+
+        if (classroomData != null) {
+          final creationTime = classroomData['creationTime'] as String?;
+          final updateTime = classroomData['updateTime'] as String?;
+
+          return (creationTime != null &&
+                  creationTime.compareTo(fechaLimiteStr) >= 0) ||
+              (updateTime != null && updateTime.compareTo(fechaLimiteStr) >= 0);
+        }
+
         return false;
-      }
-      
-      // Si no tiene classroomId, incluirlo (tarea creada manualmente)
-      if (data['classroomId'] == null) return true;
-      
-      // Si tiene _classroom_data, verificar las fechas
-      if (classroomData != null) {
-        final creationTime = classroomData['creationTime'] as String?;
-        final updateTime = classroomData['updateTime'] as String?;
-        
-        return (creationTime != null && creationTime.compareTo(fechaLimiteStr) >= 0) ||
-               (updateTime != null && updateTime.compareTo(fechaLimiteStr) >= 0);
-      }
-      
-      // Si tiene classroomId pero no tiene _classroom_data, no incluirlo
-      return false;
-    }).toList();
-    
-    return tareasFiltradas
-        .map((doc) => TareaPlanificacion.fromFirestore(doc.data()))
-        .toList();
-        
-  } catch (e) {
-    print('Error obteniendo tareas: $e');
-    return [];
+      }).toList();
+
+      // Pasar el ID del documento
+      return tareasFiltradas
+          .map((doc) => TareaPlanificacion.fromFirestore(doc.id, doc.data()))
+          .toList();
+    } catch (e) {
+      print('Error obteniendo tareas: $e');
+      return [];
+    }
   }
-}
 
   // Verificar si ya existe un plan para hoy
   Future<bool> existePlanHoy(String userId) async {
@@ -271,7 +271,6 @@ class GeminiPlanificadorService {
     buffer.writeln('4. Estima tiempos realistas (30 min a 2 horas por tarea)');
     buffer.writeln('\n=== TAREAS DISPONIBLES ===\n');
 
-    // Ordenar tareas por prioridad y fecha límite
     final tareasOrdenadas = List<TareaPlanificacion>.from(tareas);
     tareasOrdenadas.sort((a, b) {
       final prioridadA = _valorPrioridad(a.prioridad);
@@ -302,6 +301,7 @@ class GeminiPlanificadorService {
           ? '${tarea.descripcion.substring(0, 150)}...'
           : tarea.descripcion;
       buffer.writeln('  Descripción: $descCorta');
+      buffer.writeln('  AssignmentId: ${tarea.id}'); // ← CORREGIDO
       buffer.writeln();
     }
 
@@ -319,7 +319,8 @@ class GeminiPlanificadorService {
         "Paso 3: acción concreta"
       ],
       "prioridad": "Alta/Media/Baja",
-      "orden": 1
+      "orden": 1,
+      "assignmentId": "ID de tarea desde la lista de arriba"
     }
   ],
   "mensajeMotivacional": "Mensaje inspirador pero realista para el día"
@@ -335,6 +336,7 @@ class GeminiPlanificadorService {
       '- La motivación debe ser específica y práctica (no genérica)',
     );
     buffer.writeln('- Ordena las tareas por prioridad (orden: 1, 2, 3...)');
+    buffer.writeln('- IMPORTANTE: Copia EXACTAMENTE el assignmentId de la tarea que selecciones');
 
     return buffer.toString();
   }
@@ -396,9 +398,9 @@ class GeminiPlanificadorService {
           .replaceAll(
             RegExp(r'[{}\[\]\""]'),
             '',
-          ) // Expresión regular más eficiente
+          )
           .trim();
-      
+
       return cleanResponse;
     } catch (e) {
       return "Error: $e";
@@ -444,11 +446,9 @@ class GeminiPlanificadorService {
   // Generar plan con estructura JSON
   Future<Map<String, dynamic>> generarPlanDiario(String userId) async {
     try {
-      // Verificar si ya existe plan para hoy
       final existePlan = await existePlanHoy(userId);
       if (existePlan) {}
 
-      // Obtener tareas pendientes
       final tareas = await obtenerTareasPendientes(userId);
 
       if (tareas.isEmpty) {
@@ -458,18 +458,15 @@ class GeminiPlanificadorService {
         };
       }
 
-      // Crear prompt y generar plan
       final prompt = _crearPromptMejorado(tareas);
       final content = [Content.text(prompt)];
       final response = await _model.generateContent(content);
 
       final planTexto = response.text ?? '{}';
-      print('Respuesta de Gemini: $planTexto'); // Debug
+      print('Respuesta de Gemini: $planTexto');
 
-      // Parsear JSON
       Map<String, dynamic> planJson;
       try {
-        // Limpiar posibles markdown
         final cleanJson = planTexto
             .replaceAll('```json', '')
             .replaceAll('```', '')
@@ -480,7 +477,6 @@ class GeminiPlanificadorService {
         throw Exception('La IA no generó un formato válido');
       }
 
-      // Validar estructura
       if (!planJson.containsKey('tareasPlanificadas')) {
         throw Exception('Respuesta inválida de la IA');
       }
@@ -493,29 +489,22 @@ class GeminiPlanificadorService {
           planJson['mensajeMotivacional'] ??
           '¡Tú puedes lograr todo lo que te propongas!';
 
-      // Calcular totales
       final horasTotales = tareasPlanificadas.fold<double>(
         0.0,
         (sum, t) => sum + t.horasEstimadas,
       );
 
-      // Validar que no exceda el máximo
       if (horasTotales > MAX_HORAS_DIA) {
         throw Exception(
           'El plan generado excede las $MAX_HORAS_DIA horas permitidas',
         );
       }
 
-      // Crear ID único para el plan
-      final planId = _firestore.collection('temp').doc().id;
-
-      // Guardar plan principal
       final planDiario = PlanDiario(
         fechaCreacion: DateTime.now(),
         totalTareas: tareasPlanificadas.length,
         horasTotales: horasTotales,
         mensajeMotivacional: mensajeMotivacional,
-        planId: planId,
       );
 
       final planRef = await _firestore
@@ -524,13 +513,15 @@ class GeminiPlanificadorService {
           .collection('planes_diarios')
           .add(planDiario.toFirestore());
 
-      // Guardar cada tarea planificada individualmente
+      // Guardar cada tarea con su assignmentId
       final batch = _firestore.batch();
       for (final tarea in tareasPlanificadas) {
-        final tareaRef = planRef.collection('tareas').doc(); // Auto-generar ID
+        final tareaRef = planRef.collection('tareas').doc();
         batch.set(tareaRef, tarea.toFirestore());
       }
       await batch.commit();
+
+      debugPrint('📤 Retornando planId: ${planRef.id}');
 
       return {
         'exito': true,
@@ -546,7 +537,6 @@ class GeminiPlanificadorService {
     }
   }
 
-  // Obtener plan del día con sus tareas
   Future<Map<String, dynamic>?> obtenerPlanHoy(String userId) async {
     try {
       final hoy = DateTime.now();
@@ -570,7 +560,6 @@ class GeminiPlanificadorService {
       final planDoc = planSnapshot.docs.first;
       final plan = PlanDiario.fromFirestore(planDoc.data());
 
-      // Obtener tareas del plan
       final tareasSnapshot = await planDoc.reference
           .collection('tareas')
           .orderBy('orden')
@@ -587,7 +576,6 @@ class GeminiPlanificadorService {
     }
   }
 
-  // Marcar tarea del plan como completada
   Future<bool> marcarTareaCompletada(
     String userId,
     String planDocId,
