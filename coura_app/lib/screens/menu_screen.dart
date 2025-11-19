@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coura_app/screens/chat_ia_screen.dart';
-import 'package:coura_app/screens/home_screen.dart';
 import 'package:coura_app/screens/login_screen.dart';
 import 'package:coura_app/screens/pending_task_screen.dart';
 import 'package:coura_app/screens/register_activity.dart';
+import 'package:coura_app/screens/sync_assignments.dart';
 import 'package:coura_app/services/auth_service.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
@@ -129,7 +129,7 @@ class _MenuScreen extends State<MenuScreen> {
           ],
         ),
       ),
-      _ScreenConfig(screen: HomeScreen()),
+      _ScreenConfig(screen: SyncAssignments()),
     ];
   }
 
