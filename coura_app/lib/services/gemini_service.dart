@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -26,7 +25,10 @@ class TareaPlanificacion {
     required this.completada,
   });
 
-  factory TareaPlanificacion.fromFirestore(String docId, Map<String, dynamic> data) {
+  factory TareaPlanificacion.fromFirestore(
+    String docId,
+    Map<String, dynamic> data,
+  ) {
     DateTime? fechalimite;
     if (data['fechaLimite'] != null) {
       fechalimite = (data['fechaLimite'] as Timestamp).toDate();
@@ -35,7 +37,7 @@ class TareaPlanificacion {
     }
 
     return TareaPlanificacion(
-      id: docId, 
+      id: docId,
       nombre: data['nombre'] ?? '',
       descripcion: data['descripcion'] ?? '',
       fechaLimite: fechalimite,
@@ -108,7 +110,7 @@ class TareaPlanificada {
       pasosSugeridos: List<String>.from(json['pasosSugeridos'] ?? []),
       prioridad: json['prioridad'] ?? 'Media',
       orden: json['orden'] ?? 0,
-      assignmentId: json['assignmentId'] ?? '', 
+      assignmentId: json['assignmentId'] ?? '',
     );
   }
 }
@@ -119,12 +121,14 @@ class PlanDiario {
   final int totalTareas;
   final double horasTotales;
   final String mensajeMotivacional;
+  final bool completado;
 
   PlanDiario({
     required this.fechaCreacion,
     required this.totalTareas,
     required this.horasTotales,
     required this.mensajeMotivacional,
+    required this.completado,
   });
 
   Map<String, dynamic> toFirestore() {
@@ -142,6 +146,7 @@ class PlanDiario {
       totalTareas: data['totalTareas'] ?? 0,
       horasTotales: (data['horasTotales'] ?? 0).toDouble(),
       mensajeMotivacional: data['mensajeMotivacional'] ?? '',
+      completado: data['completado'] ?? false,
     );
   }
 }
@@ -301,7 +306,7 @@ class GeminiPlanificadorService {
           ? '${tarea.descripcion.substring(0, 150)}...'
           : tarea.descripcion;
       buffer.writeln('  Descripción: $descCorta');
-      buffer.writeln('  AssignmentId: ${tarea.id}'); // ← CORREGIDO
+      buffer.writeln('  AssignmentId: ${tarea.id}');
       buffer.writeln();
     }
 
@@ -336,7 +341,9 @@ class GeminiPlanificadorService {
       '- La motivación debe ser específica y práctica (no genérica)',
     );
     buffer.writeln('- Ordena las tareas por prioridad (orden: 1, 2, 3...)');
-    buffer.writeln('- IMPORTANTE: Copia EXACTAMENTE el assignmentId de la tarea que selecciones');
+    buffer.writeln(
+      '- IMPORTANTE: Copia EXACTAMENTE el assignmentId de la tarea que selecciones',
+    );
 
     return buffer.toString();
   }
@@ -395,10 +402,7 @@ class GeminiPlanificadorService {
       final motivacion = response.text ?? "¡Tú puedes lograrlo! 💪";
 
       final cleanResponse = motivacion
-          .replaceAll(
-            RegExp(r'[{}\[\]\""]'),
-            '',
-          )
+          .replaceAll(RegExp(r'[{}\[\]\""]'), '')
           .trim();
 
       return cleanResponse;
@@ -505,6 +509,7 @@ class GeminiPlanificadorService {
         totalTareas: tareasPlanificadas.length,
         horasTotales: horasTotales,
         mensajeMotivacional: mensajeMotivacional,
+        completado: false,
       );
 
       final planRef = await _firestore

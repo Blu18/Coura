@@ -5,7 +5,6 @@ import 'package:coura_app/utils/animations/card_animation.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/scheduler.dart';
 
 // Modelo para mensajes
 class MensajeChat {
@@ -81,7 +80,6 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   bool _inicializado = false;
   late Future<List<String>> _combinedFutures;
-  bool _debeHacerScroll = false;
 
   @override
   void initState() {
@@ -168,6 +166,31 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
         );
   }
 
+  void _hacerScrollAlFinal() {
+    debugPrint('🎯 Programando scroll...');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(Duration(milliseconds: 1500), () {
+        if (mounted && _scrollController.hasClients) {
+          final maxExtent = _scrollController.position.maxScrollExtent;
+          debugPrint('   Ejecutando scroll animado a: $maxExtent');
+
+          _scrollController
+              .animateTo(
+                maxExtent,
+                duration: Duration(milliseconds: 300), // ← Más rápido
+                curve: Curves.easeOut, // ← Desaceleración al final
+              )
+              .then((_) {
+                debugPrint(
+                  '   ✅ Scroll completado a: ${_scrollController.position.pixels}',
+                );
+              });
+        }
+      });
+    });
+  }
+
   Future<void> _verificarEstadoBoton() async {
     try {
       debugPrint('🔍 Verificando estado inicial del botón...');
@@ -225,8 +248,8 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
           '📊 Sin plan existente, contador inicial: $_ultimoContadorTareas',
         );
         setState(() {
-        _botonHabilitado = !existePlan;
-        _botonAvanzarHabilitado = existePlan;
+          _botonHabilitado = !existePlan;
+          _botonAvanzarHabilitado = existePlan;
         });
       }
 
@@ -277,7 +300,6 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
             'tipo': tipo,
             'dataPlan': dataPlan,
           });
-      _debeHacerScroll = true;
     } catch (e) {
       debugPrint('Error guardando mensaje: $e');
     }
@@ -297,6 +319,7 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
         '🔄 Actualizar plan con nuevas tareas',
         esUsuario: true,
       );
+      _hacerScrollAlFinal();
       debugPrint('🔄 Existe plan previo, se eliminará y creará uno nuevo');
 
       try {
@@ -338,6 +361,7 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
         '🤖 Generar mi plan de estudio del día',
         esUsuario: true,
       );
+      _hacerScrollAlFinal();
     }
 
     try {
@@ -518,7 +542,7 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
           await _firestore.collection('users').doc(widget.userId).set({
             'planes_completados': FieldValue.increment(1),
             'racha': FieldValue.increment(1),
-            'completado' : true,
+            'completado': true,
           }, SetOptions(merge: true));
 
           await _firestore
@@ -577,6 +601,8 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
 
       // Mostrar la tarea actual
       await _guardarMensaje('▶️ Avanzar a siguiente tarea', esUsuario: true);
+
+      _hacerScrollAlFinal();
 
       await _guardarMensaje(
         'Tarea actual',
@@ -743,21 +769,6 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
                       itemCount: mensajes.length,
                       itemBuilder: (context, index) {
                         final mensaje = mensajes[index];
-
-                        if (index == mensajes.length - 1 && _debeHacerScroll) {
-                          SchedulerBinding.instance.addPostFrameCallback((_) {
-                            Future.delayed(Duration(milliseconds: 300), () {
-                              if (mounted && _scrollController.hasClients) {
-                                _scrollController.animateTo(
-                                  _scrollController.position.maxScrollExtent,
-                                  duration: Duration(milliseconds: 400),
-                                  curve: Curves.easeOut,
-                                );
-                                _debeHacerScroll = false;
-                              }
-                            });
-                          });
-                        }
 
                         if (mensaje.tipo == 'tarea_actual' &&
                             mensaje.dataPlan != null) {
@@ -935,7 +946,10 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   iconAlignment: IconAlignment.end,
-                  onPressed: (_cargando || !_botonAvanzarHabilitado || _botonHabilitado)
+                  onPressed:
+                      (_cargando ||
+                          !_botonAvanzarHabilitado ||
+                          _botonHabilitado)
                       ? null
                       : _avanzarTarea,
                   icon: Icon(Icons.arrow_forward),
@@ -1092,9 +1106,11 @@ class _TareaActualWidgetState extends State<TareaActualWidget> {
 
         if (doc.exists) {
           final data = doc.data();
-          setState(() {
-            _completada = data?['completed'] ?? false;
-          });
+          if (mounted) {
+            setState(() {
+              _completada = data?['completed'] ?? false;
+            });
+          }
         }
       }
     } catch (e) {
