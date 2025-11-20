@@ -8,10 +8,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-
   await Firebase.initializeApp();
   print("Handling a background message: ${message.messageId}");
 }
+
+// ← AGREGAR: Key global para navegación
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,11 +25,13 @@ void main() async {
 
   // Configura el manejador de mensajes en segundo plano
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  _configurarNotificaciones(); 
+
   try {
     await dotenv.load(fileName: ".env");
     debugPrint('✅ Archivo .env cargado correctamente');
 
-    // Validar que la clave existe
     if (dotenv.env["GEMINI_API_KEY"] == null) {
       debugPrint('⚠️ GEMINI_API_KEY no encontrada en .env');
     }
@@ -38,16 +42,57 @@ void main() async {
   runApp(const MainApp());
 }
 
+void _configurarNotificaciones() {
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    debugPrint('📲 Notificación recibida en foreground:');
+    debugPrint('   Título: ${message.notification?.title}');
+    debugPrint('   Cuerpo: ${message.notification?.body}');
+    debugPrint('   Data: ${message.data}');
+  });
+
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    debugPrint('📲 Notificación tocada, abriendo app:');
+    debugPrint('   Data: ${message.data}');
+    
+    final route = message.data['route'] ?? '/home';
+    
+    Future.delayed(Duration(milliseconds: 500), () {
+      if (navigatorKey.currentState != null) {
+        navigatorKey.currentState!.pushNamed(route);
+      }
+    });
+  });
+
+  FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+    if (message != null) {
+      debugPrint('📲 App abierta desde notificación:');
+      debugPrint('   Data: ${message.data}');
+      
+      final route = message.data['route'] ?? '/home';
+      
+      Future.delayed(Duration(seconds: 1), () {
+        if (navigatorKey.currentState != null) {
+          navigatorKey.currentState!.pushNamed(route);
+        }
+      });
+    }
+  });
+}
+
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "Coura",
       showPerformanceOverlay: false,
-      home: AuthLayout(),
+      navigatorKey: navigatorKey,
+      home: const AuthLayout(),
+      routes: {
+        '/home': (context) => const AuthLayout(),
+      },
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coura_app/screens/home_screen.dart';
 import 'package:coura_app/screens/login_screen.dart';
 import 'package:coura_app/utils/custom/custom_name_field.dart';
@@ -31,15 +32,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void register() async {
     try {
-      final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: correocontroller.text,
-        password: contracontroller.text,
-      );
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: correocontroller.text,
+            password: contracontroller.text,
+          );
       User? user = userCredential.user;
 
       if (user != null) {
         await user.updateProfile(displayName: nombrecontroller.text.trim());
         await user.reload();
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          "notificaciones_habilitadas": true, 
+        });
         print(
           "¡Cuenta creada y nombre guardado exitosamente: ${user.displayName}!",
         );
