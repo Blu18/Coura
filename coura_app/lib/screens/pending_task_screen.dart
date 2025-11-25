@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coura_app/screens/pending_course_task_screen.dart';
+import 'package:coura_app/utils/custom/buttons/classroom_button.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -237,7 +238,7 @@ class TareaCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -253,6 +254,7 @@ class TareaCard extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(width: 8),
               Chip(
                 label: Text(tarea['prioridad']),
                 backgroundColor: pColor,
@@ -263,6 +265,22 @@ class TareaCard extends StatelessWidget {
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    (tarea['classroomId'] != null &&
+                            tarea['classroomLink'] != null)
+                        ? ClassroomButton(
+                            url: tarea['classroomLink'],
+                            iconColor: Colors.white,
+                            bgColor: Colors.blue,
+                          )
+                        : const SizedBox(),
+                        
+                  ],
                 ),
               ),
             ],

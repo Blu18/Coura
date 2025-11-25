@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:coura_app/services/gemini_service.dart';
 import 'package:coura_app/utils/animations/app_animations.dart';
 import 'package:coura_app/utils/animations/card_animation.dart';
+import 'package:coura_app/utils/custom/buttons/classroom_button.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/app_images.dart';
 import 'package:flutter/material.dart';
@@ -679,10 +680,7 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Image.asset(
-                                CAppImages.applogo,
-                                scale: 1.8,
-                              ),
+                              Image.asset(CAppImages.applogo, scale: 1.8),
                               SizedBox(height: 20),
                               Text(
                                 "Hola, estoy listo",
@@ -1439,37 +1437,52 @@ class _TareaActualWidgetState extends State<TareaActualWidget> {
                       SizedBox(height: 16),
 
                       // Instrucción
+                      // Instrucción
                       if (!completada)
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.orange.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.orange[700],
-                                size: 18,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Marca esta tarea como completada para continuar',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.orange[900],
-                                    fontWeight: FontWeight.w500,
+                        Row(
+                          children: [
+                            Expanded(
+                              // ✅ Cambia Container por Expanded
+                              child: Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.orange.withOpacity(0.3),
                                   ),
                                 ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: Colors.orange[700],
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Marca esta tarea como completada para continuar',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.orange[900],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                            SizedBox(width: 8),
+                            ClassroomButton(
+                              bgColor: Colors.blue,
+                              iconColor: Colors.white,
+                              url:
+                                  widget.tareaData['classroomLink'] ??
+                                  "https://classroom.google.com/",
+                            ),
+                          ],
                         ),
 
                       SizedBox(height: 8),

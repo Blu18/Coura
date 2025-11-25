@@ -13,6 +13,7 @@ class TareaPlanificacion {
   final String prioridad;
   final String materia;
   final bool completada;
+  final String? classroomLink;
 
   TareaPlanificacion({
     required this.id,
@@ -23,6 +24,7 @@ class TareaPlanificacion {
     required this.prioridad,
     required this.materia,
     required this.completada,
+    this.classroomLink,
   });
 
   factory TareaPlanificacion.fromFirestore(
@@ -45,6 +47,7 @@ class TareaPlanificacion {
       prioridad: data['prioridad'] ?? 'Media',
       materia: data['materia'] ?? '',
       completada: data['completada'] ?? false,
+      classroomLink: data['classroomLink'] ?? null,
     );
   }
 }
@@ -60,6 +63,7 @@ class TareaPlanificada {
   final int orden;
   final bool completada;
   final String assignmentId;
+  final String? classroomLink;
 
   TareaPlanificada({
     required this.nombreTarea,
@@ -71,6 +75,7 @@ class TareaPlanificada {
     required this.orden,
     required this.assignmentId,
     this.completada = false,
+    this.classroomLink,
   });
 
   Map<String, dynamic> toFirestore() {
@@ -84,6 +89,7 @@ class TareaPlanificada {
       'orden': orden,
       'completada': completada,
       'assignmentId': assignmentId,
+      'classroomLink': classroomLink,
     };
   }
 
@@ -98,6 +104,7 @@ class TareaPlanificada {
       orden: data['orden'] ?? 0,
       completada: data['completada'] ?? false,
       assignmentId: data['assignmentId'] ?? '',
+      classroomLink: data['classroomLink'] ?? null,
     );
   }
 
@@ -111,6 +118,7 @@ class TareaPlanificada {
       prioridad: json['prioridad'] ?? 'Media',
       orden: json['orden'] ?? 0,
       assignmentId: json['assignmentId'] ?? '',
+      classroomLink: json['classroomLink'] ?? null,
     );
   }
 }

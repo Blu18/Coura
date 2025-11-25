@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coura_app/screens/edit_task_screen.dart';
+import 'package:coura_app/utils/custom/buttons/classroom_button.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -178,9 +179,23 @@ class TareaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tarea['nombre'],
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  tarea['nombre'],
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              const SizedBox(width: 8),
+              tarea['sincronizado_desde_classroom'] != null? ClassroomButton(
+                              bgColor: Colors.blue,
+                              iconColor: Colors.white,
+                              url:
+                                  tarea['classroomLink'] ??
+                                  "https://classroom.google.com/",
+                            ) : const SizedBox.shrink(),
+            ],
           ),
           const SizedBox(height: 4),
           Row(
