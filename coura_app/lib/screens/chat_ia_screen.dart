@@ -3,6 +3,7 @@ import 'package:coura_app/services/gemini_service.dart';
 import 'package:coura_app/utils/animations/app_animations.dart';
 import 'package:coura_app/utils/animations/card_animation.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
+import 'package:coura_app/utils/styles/app_images.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -678,6 +679,11 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              Image.asset(
+                                CAppImages.applogo,
+                                scale: 1.8,
+                              ),
+                              SizedBox(height: 20),
                               Text(
                                 "Hola, estoy listo",
                                 style: TextStyle(
@@ -742,7 +748,7 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
                                   return SizedBox.shrink();
                                 },
                               ),
-                              SizedBox(height: 80),
+                              SizedBox(height: 200),
                             ],
                           ),
                         ),

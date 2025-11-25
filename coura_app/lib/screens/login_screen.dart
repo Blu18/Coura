@@ -3,6 +3,7 @@ import 'package:coura_app/screens/register_screen.dart';
 import 'package:coura_app/services/auth_service.dart';
 import 'package:coura_app/utils/custom/custom_text_field.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
+import 'package:coura_app/utils/styles/app_images.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -100,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 35),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              //children: [Image.asset(CAppImages.applogo, scale: 1.5, cacheWidth: 600,)],
+              children: [Image.asset(CAppImages.applogo, scale: 1.5)], 
             ),
 
             Text(
