@@ -374,9 +374,9 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
           .get();
       final assignmentsExist = snapshot.size > 0;
       if (!assignmentsExist) {
-        await _guardarMensaje("⚠️No tienes tareas creada!", esUsuario: false);
+        await _guardarMensaje("⚠️No tienes tareas creadas!", esUsuario: false);
         await _guardarMensaje(
-          "Crea una nueva tarea o sincroniza con Classroom⚙️",
+          "Sincroniza con Classroom⚙️",
           esUsuario: false,
         );
       } else {
@@ -439,10 +439,18 @@ class _ChatIAScreenState extends State<ChatIAScreen> {
             _botonAvanzarHabilitado = true;
           });
         } else {
-          await _guardarMensaje(
+          if(!resultado['exito']) {
+            await _guardarMensaje(
+              resultado['mensaje'],
+              esUsuario: false,
+          );
+          } else {
+            await _guardarMensaje(
             '❌ ${resultado['error'] ?? 'Error desconocido'}',
             esUsuario: false,
           );
+          }
+          
         }
       }
     } catch (e) {

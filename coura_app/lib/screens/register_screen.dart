@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:coura_app/screens/home_screen.dart';
 import 'package:coura_app/screens/login_screen.dart';
+import 'package:coura_app/services/auth_layout.dart';
 import 'package:coura_app/utils/custom/custom_name_field.dart';
 import 'package:coura_app/utils/custom/custom_text_field.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
@@ -52,7 +52,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       popPage();
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
+        MaterialPageRoute(builder: (context) => AuthLayout()),
       );
     } on FirebaseAuthException catch (e) {
       String translatedError = "Ocurrio un error";

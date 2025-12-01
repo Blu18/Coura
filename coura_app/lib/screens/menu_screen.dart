@@ -4,6 +4,7 @@ import 'package:coura_app/screens/login_screen.dart';
 import 'package:coura_app/screens/pending_task_screen.dart';
 import 'package:coura_app/screens/register_activity.dart';
 import 'package:coura_app/screens/sync_assignments.dart';
+import 'package:coura_app/screens/user_screen.dart';
 import 'package:coura_app/services/auth_service.dart';
 import 'package:coura_app/utils/styles/app_colors.dart';
 import 'package:coura_app/utils/styles/text_style.dart';
@@ -31,54 +32,6 @@ class _MenuScreen extends State<MenuScreen> {
   final User user = FirebaseAuth.instance.currentUser!;
   late final List<_ScreenConfig> _screens;
 
-  Future<void> _limpiarChat() async {
-    final FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Limpiar conversación'),
-        content: Text(
-          '¿Estás seguro de que deseas eliminar todos los mensajes?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar == true) {
-      try {
-        final mensajes = await firestore
-            .collection('users')
-            .doc(user.uid)
-            .collection('chat_mensajes')
-            .get();
-
-        final batch = firestore.batch();
-        for (var doc in mensajes.docs) {
-          batch.delete(doc.reference);
-        }
-        await batch.commit();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Conversación eliminada')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al eliminar mensajes')),
-        );
-      }
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -89,21 +42,14 @@ class _MenuScreen extends State<MenuScreen> {
           geminiApiKey: dotenv.env["GEMINI_API_KEY"] ?? "",
         ),
         customAppBar: AppBar(
-        title: Text(
-          'Asistente',
-          style: CTextStyle.headlineLarge.copyWith(color: Colors.white),
-        ),
-        backgroundColor: AppColors.lapizlazuli,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        /*actions: [
-          IconButton(
-            icon: Icon(Icons.delete_outline),
-            onPressed: _limpiarChat,
-            tooltip: 'Limpiar conversación',
+          title: Text(
+            'Asistente',
+            style: CTextStyle.headlineLarge.copyWith(color: Colors.white),
           ),
-        ],*/
-      ),
+          backgroundColor: AppColors.lapizlazuli,
+          foregroundColor: Colors.white,
+          centerTitle: true,
+        ),
       ),
       _ScreenConfig(
         screen: PendingTaskScreen(),
@@ -129,7 +75,18 @@ class _MenuScreen extends State<MenuScreen> {
           ],
         ),
       ),
-      _ScreenConfig(screen: SyncAssignments()),
+      _ScreenConfig(screen: ProfileScreen()),
+      _ScreenConfig(
+        screen: SyncAssignments(),
+        customAppBar: AppBar(
+          title: Text(
+            "Sincronizar Asignaciones",
+            style: CTextStyle.headlineLarge.copyWith(color: Colors.white),
+          ),
+          backgroundColor: AppColors.lapizlazuli,
+          centerTitle: true,
+        ),
+      ),
     ];
   }
 
@@ -213,6 +170,16 @@ class _MenuScreen extends State<MenuScreen> {
               selectedTileColor: const Color.fromARGB(255, 39, 129, 197),
               onTap: () => _onItemTapped(2),
             ),
+            ListTile(
+              leading: Icon(Icons.sync_rounded, color: Colors.white),
+              title: Text(
+                'Sincronizar Classroom',
+                style: CTextStyle.tittleLarge.copyWith(color: Colors.white),
+              ),
+              selected: _selectedIndex == 3,
+              selectedTileColor: const Color.fromARGB(255, 39, 129, 197),
+              onTap: () => _onItemTapped(3),
+            ),
             Divider(),
             ListTile(
               leading: Icon(Icons.logout, color: Colors.red),
@@ -237,6 +204,8 @@ class _MenuScreen extends State<MenuScreen> {
         return 'Tareas Pendientes';
       case 2:
         return 'Perfil';
+      case 3:
+        return 'Sincronizar Classroom';
       default:
         return 'Coura App';
     }

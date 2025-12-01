@@ -18,14 +18,6 @@ class _SyncAssignmentsState extends State<SyncAssignments> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(
-          "Sincronizar Asignaciones",
-          style: CTextStyle.headlineLarge.copyWith(color: Colors.white),
-        ),
-        backgroundColor: AppColors.lapizlazuli,
-        centerTitle: true,
-      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

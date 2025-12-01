@@ -310,11 +310,13 @@ class GeminiPlanificadorService {
         '${diasRestantes != null ? " ($diasRestantes días)" : ""}',
       );
 
+
       final descCorta = tarea.descripcion.length > 150
           ? '${tarea.descripcion.substring(0, 150)}...'
           : tarea.descripcion;
       buffer.writeln('  Descripción: $descCorta');
       buffer.writeln('  AssignmentId: ${tarea.id}');
+      buffer.writeln('  ClassroomLink: ${tarea.classroomLink}');
       buffer.writeln();
     }
 
@@ -334,6 +336,7 @@ class GeminiPlanificadorService {
       "prioridad": "Alta/Media/Baja",
       "orden": 1,
       "assignmentId": "ID de tarea desde la lista de arriba"
+      "classroomLink": "Link de la tarea en Classroom"
     }
   ],
   "mensajeMotivacional": "Mensaje inspirador pero realista para el día"
